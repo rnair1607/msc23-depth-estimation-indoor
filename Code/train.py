@@ -133,15 +133,15 @@ eval_metrics = ['silog', 'abs_rel', 'log10', 'rms', 'sq_rel', 'log_rms', 'd1', '
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
 
-    if args.gpu is not None:
-        print("Use GPU: {} for training".format(args.gpu))
+    # if args.gpu is not None:
+    #     print("Use GPU: {} for training".format(args.gpu))
 
-    if args.distributed:
-        if args.dist_url == "env://" and args.rank == -1:
-            args.rank = int(os.environ["RANK"])
-        if args.multiprocessing_distributed:
-            args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
+    # if args.distributed:
+    #     if args.dist_url == "env://" and args.rank == -1:
+    #         args.rank = int(os.environ["RANK"])
+    #     if args.multiprocessing_distributed:
+    #         args.rank = args.rank * ngpus_per_node + gpu
+    #     dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
 
     # Create model
     print("Creating model")

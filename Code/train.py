@@ -136,6 +136,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # Create model
     model = AcaModel(args)
+    print("Module:::",model.modules)
 
     num_params = sum([np.prod(p.size()) for p in model.parameters()])
     print("Total number of parameters: {}".format(num_params))
@@ -145,9 +146,9 @@ def main_worker(gpu, ngpus_per_node, args):
 
     print("Model Initialized")
 
-    optimizer = torch.optim.AdamW([{'params': model.modules.encoder.parameters(), 'weight_decay': args.weight_decay},
-                                   {'params': model.modules.decoder.parameters(), 'weight_decay': 0}],
-                                  lr=args.learning_rate, eps=args.adam_eps)
+    # optimizer = torch.optim.AdamW([{'params': model.modules.encoder.parameters(), 'weight_decay': args.weight_decay},
+    #                                {'params': model.modules.decoder.parameters(), 'weight_decay': 0}],
+    #                               lr=args.learning_rate, eps=args.adam_eps)
     print("Running data loader")
     dataloader = DataLoader(args, 'train')
     print("Loaded Data loader")

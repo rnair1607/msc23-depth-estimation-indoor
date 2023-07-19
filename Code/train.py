@@ -149,5 +149,6 @@ def main_worker(gpu, ngpus_per_node, args):
     print(model)
 
 def main():
+    print("Entered Main!")
     ngpus_per_node = torch.cuda.device_count()
     main_worker(args.gpu, ngpus_per_node, args)

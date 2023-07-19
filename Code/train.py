@@ -19,10 +19,11 @@ import matplotlib
 import matplotlib.cm
 import threading
 from tqdm import tqdm
+import numpy as np
 
 from model import AcaModel
 # from loss import ssim
-from data import getTrainingTestingData
+from data import DataLoader
 from utils import AverageMeter, DepthNorm, colorize
 
 print("entered the tain file")
@@ -133,21 +134,22 @@ eval_metrics = ['silog', 'abs_rel', 'log10', 'rms', 'sq_rel', 'log_rms', 'd1', '
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
 
-    # if args.gpu is not None:
-    #     print("Use GPU: {} for training".format(args.gpu))
-
-    # if args.distributed:
-    #     if args.dist_url == "env://" and args.rank == -1:
-    #         args.rank = int(os.environ["RANK"])
-    #     if args.multiprocessing_distributed:
-    #         args.rank = args.rank * ngpus_per_node + gpu
-    #     dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
-
     # Create model
-    print("Creating model")
     model = AcaModel(args)
-    print("Model Created")
-    print(model)
+
+    num_params = sum([np.prod(p.size()) for p in model.parameters()])
+    print("Total number of parameters: {}".format(num_params))
+
+    num_params_update = sum([np.prod(p.shape) for p in model.parameters() if p.requires_grad])
+    print("Total number of learning parameters: {}".format(num_params_update))
+
+    print("Model Initialized")
+
+    optimizer = torch.optim.AdamW([{'params': model.module.encoder.parameters(), 'weight_decay': args.weight_decay},
+                                   {'params': model.module.decoder.parameters(), 'weight_decay': 0}],
+                                  lr=args.learning_rate, eps=args.adam_eps)
+    
+    dataloader = DataLoader(args, 'train')
 
 def main():
     print("Entered Main!")

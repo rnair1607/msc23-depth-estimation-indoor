@@ -25,6 +25,7 @@ from model import AcaModel
 from data import getTrainingTestingData
 from utils import AverageMeter, DepthNorm, colorize
 
+print("entered the tain file")
 
 
 # Arguments

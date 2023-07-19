@@ -12,14 +12,32 @@ def weights_init_xavier(m):
             torch.nn.init.zeros_(m.bias)
 
 class Encoder(nn.Module):
-    def __init__(self):
-        super(Encoder, self).__init__()       
-        self.original_model = models.densenet121(pretrained=True)
+    def __init__(self, params):
+        super(Encoder, self).__init__()
+        self.params = params     
+        self.params = params  
+        if params.encoder == 'densenet161':
+            self.selected_model = models.densenet161(pretrained=True).features
+            self.feat_names = ['relu0', 'pool0', 'transition1', 'transition2', 'norm5']
+            self.feat_out_channels = [96, 96, 192, 384, 2208]
+
+        else:
+            self.selected_model = models.densenet121(pretrained=True).features
+            self.feat_names = ['relu0', 'pool0', 'transition1', 'transition2', 'norm5']
+            self.feat_out_channels = [64, 64, 128, 256, 1024]
 
     def forward(self, x):
-        features = [x]
-        for k, v in self.original_model.features._modules.items(): features.append( v(features[-1]) )
-        return features
+        feature = x
+        skip_feat = []
+        i = 1
+        for k, v in self.selected_model._modules.items():
+            if 'fc' in k or 'avgpool' in k:
+                continue
+            feature = v(feature)
+            if any(x in k for x in self.feat_names):
+                    skip_feat.append(feature)
+            i += 1
+        return skip_feat
     
 class Atrous_conv(nn.Sequential):
     def __init__(self, in_channels, out_channels, dilation, apply_bn_first=True):
@@ -243,4 +261,7 @@ class AcaModel(nn.Module):
         self.decoder = Decoder(params, self.encoder.feat_out_channels, params.bts_size)
 
     def forward(self, x, focal):
+        print("From Model file:::")
+        print("X is ::",x)
+        print("Focal is ::",focal)
         return self.decoder(self.encoder(x), focal)

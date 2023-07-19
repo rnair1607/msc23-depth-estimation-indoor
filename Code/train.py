@@ -153,3 +153,6 @@ def main():
     print("Entered Main!")
     ngpus_per_node = torch.cuda.device_count()
     main_worker(args.gpu, ngpus_per_node, args)
+
+if __name__ == '__main__':
+    main()

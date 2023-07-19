@@ -145,8 +145,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     print("Model Initialized")
 
-    optimizer = torch.optim.AdamW([{'params': model.module.encoder.parameters(), 'weight_decay': args.weight_decay},
-                                   {'params': model.module.decoder.parameters(), 'weight_decay': 0}],
+    optimizer = torch.optim.AdamW([{'params': model.modules.encoder.parameters(), 'weight_decay': args.weight_decay},
+                                   {'params': model.modules.decoder.parameters(), 'weight_decay': 0}],
                                   lr=args.learning_rate, eps=args.adam_eps)
     print("Running data loader")
     dataloader = DataLoader(args, 'train')

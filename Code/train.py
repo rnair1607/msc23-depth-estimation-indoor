@@ -36,14 +36,12 @@ def convert_arg_line_to_args(arg_line):
             continue
         yield arg
 
-parser = argparse.ArgumentParser(description='BTS PyTorch implementation.', fromfile_prefix_chars='@')
+parser = argparse.ArgumentParser(description='AcaModel', fromfile_prefix_chars='@')
 parser.convert_arg_line_to_args = convert_arg_line_to_args
 
 parser.add_argument('--mode',                      type=str,   help='train or test', default='train')
 parser.add_argument('--model_name',                type=str,   help='model name', default='bts_eigen_v2')
-parser.add_argument('--encoder',                   type=str,   help='type of encoder, desenet121_bts, densenet161_bts, '
-                                                                    'resnet101_bts, resnet50_bts, resnext50_bts or resnext101_bts',
-                                                               default='densenet161_bts')
+parser.add_argument('--encoder',                   type=str,   help='type of encoder, desenet121_bts, densenet161_bts', default='densenet161_bts')
 # Dataset
 parser.add_argument('--dataset',                   type=str,   help='dataset to train on, kitti or nyu', default='nyu')
 parser.add_argument('--data_path',                 type=str,   help='path to the data', required=True)
@@ -76,8 +74,8 @@ parser.add_argument('--variance_focus',            type=float, help='lambda in p
 # Preprocessing
 parser.add_argument('--do_random_rotate',                      help='if set, will perform random rotation for augmentation', action='store_true')
 parser.add_argument('--degree',                    type=float, help='random rotation maximum degree', default=2.5)
-parser.add_argument('--do_kb_crop',                            help='if set, crop input images as kitti benchmark images', action='store_true')
-parser.add_argument('--use_right',                             help='if set, will randomly use right images when train on KITTI', action='store_true')
+# parser.add_argument('--do_kb_crop',                            help='if set, crop input images as kitti benchmark images', action='store_true')
+# parser.add_argument('--use_right',                             help='if set, will randomly use right images when train on KITTI', action='store_true')
 
 # Multi-gpu training
 parser.add_argument('--num_threads',               type=int,   help='number of threads to use for data loading', default=1)

@@ -4,7 +4,7 @@
 --dataset nyu
 --data_path /content/mini_sync
 --gt_path /content/mini_sync
---filenames_file ../train_test_inputs/nyudepthv2_train_files_with_gt.txt
+--filenames_file /content/msc23-depth-estimation-indoor/Code/train_with_gt.txt
 --batch_size 4
 --num_epochs 50
 --learning_rate 1e-4
@@ -25,7 +25,7 @@
 --eval_freq 500
 --data_path_eval ../../dataset/nyu_depth_v2/official_splits/test/
 --gt_path_eval ../../dataset/nyu_depth_v2/official_splits/test/
---filenames_file_eval ../train_test_inputs/nyudepthv2_test_files_with_gt.txt
+--filenames_file_eval /content/msc23-depth-estimation-indoor/Code/test_with_gt.txt
 --min_depth_eval 1e-3
 --max_depth_eval 10
 --eval_summary_directory ./models/eval/

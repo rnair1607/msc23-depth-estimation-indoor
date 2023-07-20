@@ -150,7 +150,7 @@ def main_worker(gpu, ngpus_per_node, args):
     print("Running data loader")
     dataloader = DataLoader(args, 'train')
     print("Loaded Data loader")
-    print(dataloader)
+    print(vars(dataloader))
 
 def main():
     print("Entered Main!")

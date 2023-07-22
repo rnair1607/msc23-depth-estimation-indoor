@@ -258,6 +258,9 @@ class AcaModel(nn.Module):
         super(AcaModel, self).__init__()
         self.encoder = Encoder(params)
         self.decoder = Decoder(params, self.encoder.feat_out_channels, params.bts_size)
+        for name, para in self.encoder.named_parameters():
+          if para.requires_grad and 'denselayer6' or 'denselayer5' or 'denselayer3' or 'denselayer2' or 'denselayer4' or 'denseblock3' or 'denseblock4' or 'denseblock2' in name:
+             para.requires_grad = False
 
     def forward(self, x, focal):
         print("From Model file:::")

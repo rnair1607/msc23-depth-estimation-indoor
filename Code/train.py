@@ -132,6 +132,8 @@ eval_metrics = ['silog', 'abs_rel', 'log10', 'rms', 'sq_rel', 'log_rms', 'd1', '
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
 
+    with open("args_from_code.txt", "w") as txt_file:
+        txt_file.write(args)
     # Create model
     model = AcaModel(args)
     print("Module:::",model.modules)

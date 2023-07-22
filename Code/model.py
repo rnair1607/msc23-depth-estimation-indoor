@@ -14,7 +14,6 @@ def weights_init_xavier(m):
 class Encoder(nn.Module):
     def __init__(self, params):
         super(Encoder, self).__init__()
-        self.params = params     
         self.params = params  
         if params.encoder == 'densenet161':
             self.selected_model = models.densenet161(pretrained=True).features

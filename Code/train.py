@@ -157,7 +157,7 @@ def main_worker(gpu, ngpus_per_node, args):
     dataloader = DataLoader(args, 'train')
     print("Loaded Data loader")
     print(dir(dataloader.data))
-    print(dir(dataloader.data.__getattribute__('__le__')))
+    print(dataloader.data.__getattribute__('__le__').__getattribute__('__str__'))
     
 
     selected_loss = None

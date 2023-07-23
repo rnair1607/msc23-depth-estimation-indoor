@@ -21,7 +21,7 @@ import threading
 from tqdm import tqdm
 import numpy as np
 
-from model import AcaModel
+from model import AcaModel, bn_init_as_tf, weights_init_xavier
 # from loss import ssim
 from data import DataLoader
 from utils import AverageMeter, DepthNorm, colorize
@@ -132,33 +132,146 @@ inv_normalize = torchvision.transforms.Normalize(
 
 eval_metrics = ['silog', 'abs_rel', 'log10', 'rms', 'sq_rel', 'log_rms', 'd1', 'd2', 'd3']
 
+def compute_errors(gt, pred):
+    thresh = np.maximum((gt / pred), (pred / gt))
+    d1 = (thresh < 1.25).mean()
+    d2 = (thresh < 1.25 ** 2).mean()
+    d3 = (thresh < 1.25 ** 3).mean()
+
+    rms = (gt - pred) ** 2
+    rms = np.sqrt(rms.mean())
+
+    log_rms = (np.log(gt) - np.log(pred)) ** 2
+    log_rms = np.sqrt(log_rms.mean())
+
+    abs_rel = np.mean(np.abs(gt - pred) / gt)
+    sq_rel = np.mean(((gt - pred) ** 2) / gt)
+
+    err = np.log(pred) - np.log(gt)
+    silog = np.sqrt(np.mean(err ** 2) - np.mean(err) ** 2) * 100
+
+    err = np.abs(np.log10(pred) - np.log10(gt))
+    log10 = np.mean(err)
+
+    return [silog, abs_rel, log10, rms, sq_rel, log_rms, d1, d2, d3]
+
+
+def block_print():
+    sys.stdout = open(os.devnull, 'w')
+
+
+def enable_print():
+    sys.stdout = sys.__stdout__
+
+
+def get_num_lines(file_path):
+    f = open(file_path, 'r')
+    lines = f.readlines()
+    f.close()
+    return len(lines)
+
+
+def colorize(value, vmin=None, vmax=None, cmap='Greys'):
+    value = value.cpu().numpy()[:, :, :]
+    value = np.log10(value)
+
+    vmin = value.min() if vmin is None else vmin
+    vmax = value.max() if vmax is None else vmax
+
+    if vmin != vmax:
+        value = (value - vmin) / (vmax - vmin)
+    else:
+        value = value*0.
+
+    cmapper = matplotlib.cm.get_cmap(cmap)
+    value = cmapper(value, bytes=True)
+
+    img = value[:, :, :3]
+
+    return img.transpose((2, 0, 1))
+
+
+def normalize_result(value, vmin=None, vmax=None):
+    value = value.cpu().numpy()[0, :, :]
+
+    vmin = value.min() if vmin is None else vmin
+    vmax = value.max() if vmax is None else vmax
+
+    if vmin != vmax:
+        value = (value - vmin) / (vmax - vmin)
+    else:
+        value = value * 0.
+
+    return np.expand_dims(value, 0)
+
+def set_misc(model):
+    if args.bn_no_track_stats:
+        print("Disabling tracking running stats in batch norm layers")
+        model.apply(bn_init_as_tf)
+
+    if args.fix_first_conv_blocks:
+        
+        fixing_layers = ['conv0', 'denseblock1.denselayer1', 'denseblock1.denselayer2', 'norm']
+        print("Fixing first two conv blocks")
+    elif args.fix_first_conv_block:
+        fixing_layers = ['conv0', 'denseblock1.denselayer1', 'norm']
+        print("Fixing first conv block")
+    else:
+        fixing_layers = ['conv0', 'norm']
+        print("Fixing first conv layer")
+
+    for name, child in model.named_children():
+        if not 'encoder' in name:
+            continue
+        for name2, parameters in child.named_parameters():
+            # print(name, name2)
+            if any(x in name2 for x in fixing_layers):
+                parameters.requires_grad = False
+
+
 
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
 
-    # with open("args_from_code.txt", "w") as txt_file:
-    #     txt_file.write(str(args))
+    
     # Create model
     model = AcaModel(args)
-    # print("Module:::",model.modules)
+    model.train()
+    model.decoder.apply(weights_init_xavier)
+    set_misc(model)
+    print("Model Initialized")
+
 
     num_params = sum([np.prod(p.size()) for p in model.parameters()])
     print("Total number of parameters: {}".format(num_params))
-
     num_params_update = sum([np.prod(p.shape) for p in model.parameters() if p.requires_grad])
     print("Total number of learning parameters: {}".format(num_params_update))
 
-    print("Model Initialized")
+    global_step = 0
+    best_eval_measures_lower_better = torch.zeros(6).cpu() + 1e3
+    best_eval_measures_higher_better = torch.zeros(3).cpu()
+    best_eval_steps = np.zeros(9, dtype=np.int32)
+
 
     optimizer = torch.optim.AdamW([{'params': model.encoder.parameters(), 'weight_decay': args.weight_decay},
                                    {'params': model.decoder.parameters(), 'weight_decay': 0}],
                                   lr=args.learning_rate, eps=args.adam_eps)
     
+
+    model_just_loaded = False
+
     dataloader = DataLoader(args, 'train')
     print("Loaded Data loader")
-    print(dir(dataloader.data))
-    print(dataloader.data.__getattribute__('__le__').__getattribute__('__str__'))
-    
+   
+    # Logging
+    if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+        writer = SummaryWriter(args.log_directory + '/' + args.model_name + '/summaries', flush_secs=30)
+        if args.do_online_eval:
+            if args.eval_summary_directory != '':
+                eval_summary_path = os.path.join(args.eval_summary_directory, args.model_name)
+            else:
+                eval_summary_path = os.path.join(args.log_directory, 'eval')
+            eval_summary_writer = SummaryWriter(eval_summary_path, flush_secs=30)
 
     selected_loss = None
     if args.loss == 'Scale_invariant_loss':
@@ -166,9 +279,109 @@ def main_worker(gpu, ngpus_per_node, args):
     else:
         selected_loss = Custom_loss()
     
-    # loss = selected_loss(pred,gt)
+
+    start_time = time.time()
+    duration = 0
+
+    num_log_images = args.batch_size
+    end_learning_rate = args.end_learning_rate if args.end_learning_rate != -1 else 0.1 * args.learning_rate
+
+    var_sum = [var.sum() for var in model.parameters() if var.requires_grad]
+    var_cnt = len(var_sum)
+    var_sum = np.sum(var_sum)
+    print("Initial variables' sum: {:.3f}, avg: {:.3f}".format(var_sum, var_sum/var_cnt))
+
+    #mini sync data length
+    steps_per_epoch = len(15397)
+    num_total_steps = args.num_epochs * steps_per_epoch
+    epoch = global_step // steps_per_epoch
 
 
+    while epoch < args.num_epochs:
+        if args.distributed:
+            dataloader.train_sampler.set_epoch(epoch)
+
+        for step, sample_batched in enumerate(dataloader.data):
+            optimizer.zero_grad()
+            before_op_time = time.time()
+
+            image = torch.autograd.Variable(sample_batched['image'].cuda(args.gpu, non_blocking=True))
+            focal = torch.autograd.Variable(sample_batched['focal'].cuda(args.gpu, non_blocking=True))
+            depth_gt = torch.autograd.Variable(sample_batched['depth'].cuda(args.gpu, non_blocking=True))
+
+            lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)
+
+
+            loss = selected_loss.forward(depth_est,depth_gt)
+            loss.backward()
+
+
+            for param_group in optimizer.param_groups:
+                current_lr = (args.learning_rate - end_learning_rate) * (1 - global_step / num_total_steps) ** 0.9 + end_learning_rate
+                param_group['lr'] = current_lr
+            optimizer.step()
+
+
+            if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+                print('[epoch][s/s_per_e/gs]: [{}][{}/{}/{}], lr: {:.12f}, loss: {:.12f}'.format(epoch, step, steps_per_epoch, global_step, current_lr, loss))
+                if np.isnan(loss.cpu().item()):
+                    print('NaN in loss occurred. Aborting training.')
+                    return -1
+
+
+            duration += time.time() - before_op_time
+            if global_step and global_step % args.log_freq == 0 and not model_just_loaded:
+                var_sum = [var.sum() for var in model.parameters() if var.requires_grad]
+                var_cnt = len(var_sum)
+                var_sum = np.sum(var_sum)
+                examples_per_sec = args.batch_size / duration * args.log_freq
+                duration = 0
+                time_sofar = (time.time() - start_time) / 3600
+                training_time_left = (num_total_steps / global_step - 1.0) * time_sofar
+                if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+                    print("{}".format(args.model_name))
+                print_string = 'GPU: {} | examples/s: {:4.2f} | loss: {:.5f} | var sum: {:.3f} avg: {:.3f} | time elapsed: {:.2f}h | time left: {:.2f}h'
+                print(print_string.format(args.gpu, examples_per_sec, loss, var_sum.item(), var_sum.item()/var_cnt, time_sofar, training_time_left))
+
+                if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+                                                            and args.rank % ngpus_per_node == 0):
+                    writer.add_scalar('loss', loss, global_step)
+                    writer.add_scalar('learning_rate', current_lr, global_step)
+                    writer.add_scalar('var average', var_sum.item()/var_cnt, global_step)
+                    depth_gt = torch.where(depth_gt < 1e-3, depth_gt * 0 + 1e3, depth_gt)
+                    for i in range(num_log_images):
+                        writer.add_image('depth_gt/image/{}'.format(i), normalize_result(1/depth_gt[i, :, :, :].data), global_step)
+                        writer.add_image('depth_est/image/{}'.format(i), normalize_result(1/depth_est[i, :, :, :].data), global_step)
+                        writer.add_image('reduc1x1/image/{}'.format(i), normalize_result(1/reduc1x1[i, :, :, :].data), global_step)
+                        writer.add_image('lpg2x2/image/{}'.format(i), normalize_result(1/lpg2x2[i, :, :, :].data), global_step)
+                        writer.add_image('lpg4x4/image/{}'.format(i), normalize_result(1/lpg4x4[i, :, :, :].data), global_step)
+                        writer.add_image('lpg8x8/image/{}'.format(i), normalize_result(1/lpg8x8[i, :, :, :].data), global_step)
+                        writer.add_image('image/image/{}'.format(i), inv_normalize(image[i, :, :, :]).data, global_step)
+                    writer.flush()
+
+            if not args.do_online_eval and global_step and global_step % args.save_freq == 0:
+                if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+                    checkpoint = {'global_step': global_step,
+                                'model': model.state_dict(),
+                                'optimizer': optimizer.state_dict()}
+                    torch.save(checkpoint, args.log_directory + '/' + args.model_name + '/model-{}'.format(global_step))
+
+            
+                model.train()
+                block_print()
+                set_misc(model)
+                enable_print()
+
+
+            model_just_loaded = False
+            global_step += 1
+        
+        epoch += 1
+
+    if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+        writer.close()
+
+    
 def main():
     print("Entered Main!")
     ngpus_per_node = torch.cuda.device_count()

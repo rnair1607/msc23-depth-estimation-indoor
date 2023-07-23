@@ -4,6 +4,12 @@ from torchvision import models
 import torch.nn.functional as torch_nn_func
 import math
 
+def bn_init_as_tf(m):
+    if isinstance(m, nn.BatchNorm2d):
+        m.track_running_stats = True  # These two lines enable using stats (moving mean and var) loaded from pretrained model
+        m.eval()                      # or zero mean and variance of one if the batch norm layer has no pretrained values
+        m.affine = True
+        m.requires_grad = True
 
 def weights_init_xavier(m):
     if isinstance(m, nn.Conv2d):

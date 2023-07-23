@@ -156,6 +156,7 @@ def main_worker(gpu, ngpus_per_node, args):
     
     dataloader = DataLoader(args, 'train')
     print("Loaded Data loader")
+    print(dir(dataloader.data))
     print(dataloader.data.__getattribute__('le'))
     
 

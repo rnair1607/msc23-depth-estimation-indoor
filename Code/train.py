@@ -300,8 +300,8 @@ def main_worker(gpu, ngpus_per_node, args):
     while epoch < args.num_epochs:
         # if args.distributed:
         #     dataloader.train_sampler.set_epoch(epoch)
-
-        for step, sample_batched in range(15396):
+        print(dir(dataloader.data))
+        for step, sample_batched in range(dataloader.data):
             optimizer.zero_grad()
             before_op_time = time.time()
 

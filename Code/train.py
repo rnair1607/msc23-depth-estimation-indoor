@@ -25,6 +25,7 @@ from model import AcaModel
 # from loss import ssim
 from data import DataLoader
 from utils import AverageMeter, DepthNorm, colorize
+from losses import Custom_loss, Scale_invariant_loss
 
 print("entered the tain file")
 
@@ -50,6 +51,9 @@ parser.add_argument('--filenames_file',            type=str,   help='path to the
 parser.add_argument('--input_height',              type=int,   help='input height', default=480)
 parser.add_argument('--input_width',               type=int,   help='input width',  default=640)
 parser.add_argument('--max_depth',                 type=float, help='maximum depth in estimation', default=10)
+
+# Loss
+parser.add_argument('--loss',             type=str,   help='Choos a loss function : Custom_loss or Scale_invariant_loss', default='Scale_invariant_loss')
 
 # Log and save
 parser.add_argument('--log_directory',             type=str,   help='directory to save checkpoints and summaries', default='')
@@ -132,11 +136,11 @@ eval_metrics = ['silog', 'abs_rel', 'log10', 'rms', 'sq_rel', 'log_rms', 'd1', '
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
 
-    with open("args_from_code.txt", "w") as txt_file:
-        txt_file.write(str(args))
+    # with open("args_from_code.txt", "w") as txt_file:
+    #     txt_file.write(str(args))
     # Create model
     model = AcaModel(args)
-    print("Module:::",model.modules)
+    # print("Module:::",model.modules)
 
     num_params = sum([np.prod(p.size()) for p in model.parameters()])
     print("Total number of parameters: {}".format(num_params))
@@ -149,10 +153,20 @@ def main_worker(gpu, ngpus_per_node, args):
     optimizer = torch.optim.AdamW([{'params': model.encoder.parameters(), 'weight_decay': args.weight_decay},
                                    {'params': model.decoder.parameters(), 'weight_decay': 0}],
                                   lr=args.learning_rate, eps=args.adam_eps)
-    print("Running data loader")
+    
     dataloader = DataLoader(args, 'train')
     print("Loaded Data loader")
-    print(vars(dataloader))
+    print(len(dataloader.data))
+    
+
+    selected_loss = None
+    if args.loss == 'Scale_invariant_loss':
+        selected_loss = Scale_invariant_loss()
+    else:
+        selected_loss = Custom_loss()
+    
+    # loss = selected_loss(pred,gt)
+
 
 def main():
     print("Entered Main!")

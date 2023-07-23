@@ -18,7 +18,7 @@ class Scale_invariant_loss(nn.Module):
         else:
             return np.sqrt(np.sum(np.square(log_diff)) / num_pixels - np.square(np.sum(log_diff)) / np.square(num_pixels))
 
-class Custom_loss(nn.module):
+class Custom_loss(nn.Module):
     def __init__(self):
         super(Scale_invariant_loss, self).__init__()
 

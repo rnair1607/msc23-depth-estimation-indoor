@@ -292,7 +292,7 @@ def main_worker(gpu, ngpus_per_node, args):
     print("Initial variables' sum: {:.3f}, avg: {:.3f}".format(var_sum, var_sum/var_cnt))
 
     #mini sync data length
-    steps_per_epoch = len(15397)
+    steps_per_epoch = 15397
     num_total_steps = args.num_epochs * steps_per_epoch
     epoch = global_step // steps_per_epoch
 

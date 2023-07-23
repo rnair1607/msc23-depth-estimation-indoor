@@ -288,7 +288,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     var_sum = [var.sum() for var in model.parameters() if var.requires_grad]
     var_cnt = len(var_sum)
-    var_sum = torch.sum(var_sum)
+    var_sum = sum(var_sum)
     print("Initial variables' sum: {:.3f}, avg: {:.3f}".format(var_sum, var_sum/var_cnt))
 
     #mini sync data length

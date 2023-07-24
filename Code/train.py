@@ -305,9 +305,9 @@ def main_worker(gpu, ngpus_per_node, args):
             optimizer.zero_grad()
             before_op_time = time.time()
 
-            image = torch.autograd.Variable(sample_batched['image'].cuda(args.gpu, non_blocking=True))
-            focal = torch.autograd.Variable(sample_batched['focal'].cuda(args.gpu, non_blocking=True))
-            depth_gt = torch.autograd.Variable(sample_batched['depth'].cuda(args.gpu, non_blocking=True))
+            image = torch.autograd.Variable(sample_batched['image'].cuda())
+            focal = torch.autograd.Variable(sample_batched['focal'].cuda())
+            depth_gt = torch.autograd.Variable(sample_batched['depth'].cuda())
 
             lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)
 

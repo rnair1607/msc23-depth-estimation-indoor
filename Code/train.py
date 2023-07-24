@@ -23,7 +23,7 @@ import numpy as np
 
 from model import AcaModel, bn_init_as_tf, weights_init_xavier
 # from loss import ssim
-from data import DataLoader
+from data import AcaDataLoader
 from utils import AverageMeter, DepthNorm, colorize
 from losses import Custom_loss, Scale_invariant_loss
 
@@ -260,7 +260,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     model_just_loaded = False
 
-    dataloader = DataLoader(args, 'train')
+    dataloader = AcaDataLoader(args, 'train')
     print("Loaded Data loader")
    
     # Logging

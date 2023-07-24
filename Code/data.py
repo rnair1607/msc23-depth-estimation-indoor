@@ -24,7 +24,7 @@ def preprocessing_transforms(mode):
     ])
 
 
-class DataLoader(object):
+class AcaDataLoader(object):
     def __init__(self, args, mode):
         if mode == 'train':
             self.training_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))

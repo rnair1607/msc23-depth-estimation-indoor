@@ -27,7 +27,7 @@ from data import AcaDataLoader
 from utils import AverageMeter, DepthNorm, colorize
 from losses import Custom_loss, Scale_invariant_loss
 
-print("entered the tain file")
+# print("entered the tain file")
 
 
 # Arguments
@@ -239,7 +239,7 @@ def main_worker(gpu, ngpus_per_node, args):
     model.train()
     model.decoder.apply(weights_init_xavier)
     set_misc(model)
-    print("Model Initialized")
+    # print("Model Initialized")
 
 
     num_params = sum([np.prod(p.size()) for p in model.parameters()])
@@ -264,7 +264,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # if args.distributed:
     #     print("Model Initialized on GPU: {}".format(args.gpu))
     # else:
-    #     print("Model Initialized")
+    print("Model Initialized")
 
     global_step = 0
     best_eval_measures_lower_better = torch.zeros(6).cpu() + 1e3
@@ -280,7 +280,7 @@ def main_worker(gpu, ngpus_per_node, args):
     model_just_loaded = False
 
     dataloader = AcaDataLoader(args, 'train')
-    print("Loaded Data loader")
+    # print("Loaded Data loader")
    
     # Logging
     if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
@@ -311,7 +311,7 @@ def main_worker(gpu, ngpus_per_node, args):
     print("Initial variables' sum: {:.3f}, avg: {:.3f}".format(var_sum, var_sum/var_cnt))
 
     #mini sync data length
-    steps_per_epoch = 15397
+    steps_per_epoch = len(dataloader.data)
     num_total_steps = args.num_epochs * steps_per_epoch
     epoch = global_step // steps_per_epoch
 
@@ -319,7 +319,7 @@ def main_worker(gpu, ngpus_per_node, args):
     while epoch < args.num_epochs:
         # if args.distributed:
         #     dataloader.train_sampler.set_epoch(epoch)
-        print(dir(dataloader.data))
+        # print(dir(dataloader.data))
         for step, sample_batched in enumerate(dataloader.data):
             optimizer.zero_grad()
             before_op_time = time.time()
@@ -342,11 +342,11 @@ def main_worker(gpu, ngpus_per_node, args):
             optimizer.step()
 
 
-            if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-                print('[epoch][s/s_per_e/gs]: [{}][{}/{}/{}], lr: {:.12f}, loss: {:.12f}'.format(epoch, step, steps_per_epoch, global_step, current_lr, loss))
-                if np.isnan(loss.cpu().item()):
-                    print('NaN in loss occurred. Aborting training.')
-                    return -1
+            # if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+            #     print('[epoch][s/s_per_e/gs]: [{}][{}/{}/{}], lr: {:.12f}, loss: {:.12f}'.format(epoch, step, steps_per_epoch, global_step, current_lr, loss))
+            #     if np.isnan(loss.cpu().item()):
+            #         print('NaN in loss occurred. Aborting training.')
+            #         return -1
 
 
             duration += time.time() - before_op_time

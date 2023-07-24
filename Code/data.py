@@ -28,16 +28,16 @@ class DataLoader(object):
     def __init__(self, args, mode):
         if mode == 'train':
             self.training_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
-            # if args.distributed:
-            #     self.train_sampler = torch.utils.data.distributed.DistributedSampler(self.training_samples)
-            # else:
-            #     self.train_sampler = None
+            if args.distributed:
+                self.train_sampler = torch.utils.data.distributed.DistributedSampler(self.training_samples)
+            else:
+                self.train_sampler = None
     
             self.data = DataLoader(self.training_samples, args.batch_size,
                                 #    shuffle=(self.train_sampler is None),
                                 #    num_workers=args.num_threads,
                                 #    pin_memory=True,
-                                #    sampler=self.train_sampler
+                                   sampler=self.train_sampler
                                    )
         
         elif mode == 'test':
@@ -45,12 +45,12 @@ class DataLoader(object):
             self.data = DataLoader(self.testing_samples, 1, shuffle=False, num_workers=1)
 
     
-    def __iter__(self):
-        return iter(self.training_samples)
+    # def __iter__(self):
+    #     return iter(self.training_samples)
 
             
             
-class DataLoadPreprocess(IterableDataset):
+class DataLoadPreprocess(Dataset):
     def __init__(self, args, mode, transform=None):
         self.args = args
         with open(args.filenames_file, 'r') as f:
@@ -175,8 +175,8 @@ class DataLoadPreprocess(IterableDataset):
     def __len__(self):
         return len(self.filenames)
     
-    def __iter__(self):
-        return iter(self.filenames)
+    # def __iter__(self):
+    #     return iter(self.filenames)
 
 
 class ToTensor(object):

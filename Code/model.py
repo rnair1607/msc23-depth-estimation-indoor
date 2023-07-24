@@ -39,7 +39,7 @@ class Encoder(nn.Module):
             if 'fc' in k or 'avgpool' in k:
                 continue
             # print("Feature before:::",feature)
-            feature = feature.to(device='cuda')
+            feature = feature.cuda()
             print("Feature type:::",type(feature))
 
             feature = v(feature)

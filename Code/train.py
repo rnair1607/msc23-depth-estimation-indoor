@@ -258,7 +258,7 @@ def main_worker(gpu, ngpus_per_node, args):
     #         model.cuda()
     #         model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
     # else:
-    model = torch.nn.DataParallel(model)
+    # model = torch.nn.DataParallel(model)
     model.cuda()
 
     # if args.distributed:

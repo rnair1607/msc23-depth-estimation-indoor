@@ -64,8 +64,8 @@ class DataLoadPreprocess(Dataset):
         focal = float(sample_path.split()[2])
 
         if self.mode == 'train':
-            image_path = os.path.join(self.args.data_path, "./" + sample_path.split()[0])
-            depth_path = os.path.join(self.args.gt_path, "./" + sample_path.split()[1])
+            image_path = os.path.join(self.args.data_path,  sample_path.split()[0])
+            depth_path = os.path.join(self.args.gt_path, sample_path.split()[1])
     
             image = Image.open(image_path)
             depth_gt = Image.open(depth_path)

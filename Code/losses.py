@@ -16,7 +16,7 @@ class Scale_invariant_loss(nn.Module):
         if num_pixels == 0:
             return float('nan')
         else:
-            return torch.sqrt(torch.sum(torch.square(log_diff)) / num_pixels - torch.square(torch.sum(log_diff)) / torch.square(num_pixels))
+            return torch.sqrt(torch.sum(torch.square(torch.tensor(log_diff))) / num_pixels - torch.square(torch.sum(torch.tensor(log_diff))) / torch.square(torch.tensor(num_pixels)))
 
 class Custom_loss(nn.Module):
     def __init__(self):

@@ -10,8 +10,8 @@ class Scale_invariant_loss(nn.Module):
         super(Scale_invariant_loss, self).__init__()
 
     def forward(self, pred, gt):
-        print("pred::::",pred)
-        print("gt::::",gt)
+        # print("pred::::",pred)
+        # print("gt::::",gt)
         log_diff = torch.log(pred) - torch.log(gt)
         print("log_diff",log_diff)
         num_pixels = float(log_diff.size(dim=1))

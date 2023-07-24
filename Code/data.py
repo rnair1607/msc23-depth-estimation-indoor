@@ -68,6 +68,7 @@ class DataLoadPreprocess(Dataset):
             print(self.args.data_path)
             print(sample_path.split()[0])
             print(sample_path.split()[1])
+            print(os.path.join(self.args.data_path, './' +  sample_path.split()[0]))
             print(os.path.join(self.args.data_path,  sample_path.split()[0]))
             print("Path test::::::")
             image_path = os.path.join(self.args.data_path,  sample_path.split()[0])

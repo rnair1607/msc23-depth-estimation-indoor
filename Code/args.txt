@@ -14,6 +14,8 @@
 --input_height 416
 --input_width 544
 --max_depth 10
+--gpu Tesla T4
+--distrubuted
 --loss Custom_loss
 --do_random_rotate
 --degree 2.5

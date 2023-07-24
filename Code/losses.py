@@ -36,7 +36,7 @@ class Custom_loss(nn.Module):
         # print(gt > 0)
         # assert(torch.all(torch.isfinite(pred) & torch.isfinite(gt) & (pred > 0) & (gt > 0)))
         diff = pred - gt
-        num_pixels = float(diff.size)
+        num_pixels = float(diff.size(dim=1))
         
         if num_pixels == 0:
             return float('nan')

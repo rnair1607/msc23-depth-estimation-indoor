@@ -15,6 +15,7 @@
 --input_width 544
 --max_depth 10
 --gpu 1
+--rank 2
 --loss Custom_loss
 --do_random_rotate
 --degree 2.5

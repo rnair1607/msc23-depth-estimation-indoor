@@ -28,16 +28,16 @@ class AcaDataLoader(object):
     def __init__(self, args, mode):
         if mode == 'train':
             self.training_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
-            if args.distributed:
-                self.train_sampler = torch.utils.data.distributed.DistributedSampler(self.training_samples)
-            else:
-                self.train_sampler = None
+            # if args.distributed:
+            #     self.train_sampler = torch.utils.data.distributed.DistributedSampler(self.training_samples)
+            # else:
+            self.train_sampler = None
     
             self.data = DataLoader(self.training_samples, args.batch_size,
-                                   shuffle=True,
+                                   shuffle=(self.train_sampler is None),
                                    num_workers=args.num_threads,
                                    pin_memory=True,
-                                   sampler= None
+                                   sampler= self.train_sampler
                                    )
         
         elif mode == 'test':

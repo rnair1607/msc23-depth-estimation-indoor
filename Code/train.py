@@ -408,50 +408,50 @@ def main():
         print('train.py is only for training. Use test.py instead.')
         return -1
 
-    model_filename = args.model_name + '.py'
-    command = 'mkdir ' + args.log_directory + '/' + args.model_name
-    os.system(command)
+    # model_filename = args.model_name + '.py'
+    # command = 'mkdir ' + args.log_directory + '/' + args.model_name
+    # os.system(command)
 
-    args_out_path = args.log_directory + '/' + args.model_name + '/' + sys.argv[1]
-    command = 'cp ' + sys.argv[1] + ' ' + args_out_path
-    os.system(command)
+    # args_out_path = args.log_directory + '/' + args.model_name + '/' + sys.argv[1]
+    # command = 'cp ' + sys.argv[1] + ' ' + args_out_path
+    # os.system(command)
 
-    if args.checkpoint_path == '':
-        model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-        command = 'cp model.py ' + model_out_path
-        os.system(command)
-        aux_out_path = args.log_directory + '/' + args.model_name + '/.'
-        command = 'cp train.py ' + aux_out_path
-        os.system(command)
-        command = 'cp data.py ' + aux_out_path
-        os.system(command)
-    else:
-        loaded_model_dir = os.path.dirname(args.checkpoint_path)
-        loaded_model_name = os.path.basename(loaded_model_dir)
-        loaded_model_filename = loaded_model_name + '.py'
+    # if args.checkpoint_path == '':
+    #     model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
+    #     command = 'cp model.py ' + model_out_path
+    #     os.system(command)
+    #     aux_out_path = args.log_directory + '/' + args.model_name + '/.'
+    #     command = 'cp train.py ' + aux_out_path
+    #     os.system(command)
+    #     command = 'cp data.py ' + aux_out_path
+    #     os.system(command)
+    # else:
+    #     loaded_model_dir = os.path.dirname(args.checkpoint_path)
+    #     loaded_model_name = os.path.basename(loaded_model_dir)
+    #     loaded_model_filename = loaded_model_name + '.py'
 
-        model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-        command = 'cp ' + loaded_model_dir + '/' + loaded_model_filename + ' ' + model_out_path
-        os.system(command)
+    #     model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
+    #     command = 'cp ' + loaded_model_dir + '/' + loaded_model_filename + ' ' + model_out_path
+    #     os.system(command)
 
     torch.cuda.empty_cache()
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
     ngpus_per_node = torch.cuda.device_count()
-    if ngpus_per_node > 1 and not args.multiprocessing_distributed:
-        print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
-        return -1
+    # if ngpus_per_node > 1 and not args.multiprocessing_distributed:
+    #     print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
+    #     return -1
 
-    if args.do_online_eval:
-        print("You have specified --do_online_eval.")
-        print("This will evaluate the model every eval_freq {} steps and save best models for individual eval metrics."
-              .format(args.eval_freq))
+    # if args.do_online_eval:
+    #     print("You have specified --do_online_eval.")
+    #     print("This will evaluate the model every eval_freq {} steps and save best models for individual eval metrics."
+    #           .format(args.eval_freq))
 
-    if args.multiprocessing_distributed:
-        args.world_size = ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
-    else:
-        main_worker(args.gpu, ngpus_per_node, args)
+    # if args.multiprocessing_distributed:
+    #     args.world_size = ngpus_per_node * args.world_size
+    #     mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+    # else:
+    main_worker(args.gpu, ngpus_per_node, args)
 
 if __name__ == '__main__':
     main()

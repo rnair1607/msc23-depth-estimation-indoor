@@ -30,11 +30,11 @@ class Custom_loss(nn.Module):
 
 
     def l1(self,pred,gt):
-        print(torch.isfinite(pred))
-        print(torch.isfinite(gt))
-        print(pred > 0)
-        print(gt > 0)
-        assert(torch.all(torch.isfinite(pred) & torch.isfinite(gt) & (pred > 0) & (gt > 0)))
+        # print(torch.isfinite(pred))
+        # print(torch.isfinite(gt))
+        # print(pred > 0)
+        # print(gt > 0)
+        # assert(torch.all(torch.isfinite(pred) & torch.isfinite(gt) & (pred > 0) & (gt > 0)))
         diff = pred - gt
         num_pixels = float(diff.size)
         

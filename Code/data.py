@@ -44,6 +44,10 @@ class DataLoader(object):
             self.testing_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
             self.data = DataLoader(self.testing_samples, 1, shuffle=False, num_workers=1)
 
+    
+    def __iter__(self):
+        return iter(self.training_samples)
+
             
             
 class DataLoadPreprocess(IterableDataset):

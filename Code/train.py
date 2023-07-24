@@ -353,7 +353,7 @@ def main_worker(gpu, ngpus_per_node, args):
             if global_step and global_step % args.log_freq == 0 and not model_just_loaded:
                 var_sum = [var.sum() for var in model.parameters() if var.requires_grad]
                 var_cnt = len(var_sum)
-                var_sum = torch.sum(var_sum)
+                var_sum = torch.sum(torch.tensor(var_sum))
                 examples_per_sec = args.batch_size / duration * args.log_freq
                 duration = 0
                 time_sofar = (time.time() - start_time) / 3600

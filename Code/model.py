@@ -269,7 +269,7 @@ class AcaModel(nn.Module):
              para.requires_grad = False
 
     def forward(self, x, focal):
-        print("From Model file:::")
-        print("X is ::",x)
-        print("Focal is ::",focal)
+        # print("From Model file:::")
+        # print("X is ::",x)
+        # print("Focal is ::",focal)
         return self.decoder(self.encoder(x), focal)

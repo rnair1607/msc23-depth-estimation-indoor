@@ -237,7 +237,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # Create model
     model = AcaModel(args)
     model.train()
-    model.decoder.apply(weights_init_xavier.cuda())
+    model.decoder.apply(weights_init_xavier)
     set_misc(model)
     print("Model Initialized")
 

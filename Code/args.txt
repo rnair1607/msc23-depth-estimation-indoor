@@ -14,7 +14,7 @@
 --input_height 416
 --input_width 544
 --max_depth 10
---loss Scale_invariant_loss
+--loss Custom_loss
 --do_random_rotate
 --degree 2.5
 --log_directory ./models/

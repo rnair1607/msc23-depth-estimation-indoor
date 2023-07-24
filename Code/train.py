@@ -332,6 +332,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
             loss = selected_loss.forward(depth_est,depth_gt)
+            loss = torch.autograd.Variable(loss, requires_grad = True)
             loss.backward()
 
 

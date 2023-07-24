@@ -38,7 +38,12 @@ class Encoder(nn.Module):
         for k, v in self.selected_model._modules.items():
             if 'fc' in k or 'avgpool' in k:
                 continue
+            print("Feature before:::",feature)
+            print("Feature type:::",type(feature))
+
             feature = v(feature)
+            print("Feature after:::",feature)
+            print("Feature type:::",type(feature))
             if any(x in k for x in self.feat_names):
                     skip_feat.append(feature)
             i += 1

@@ -6,7 +6,7 @@ from torchvision import transforms
 from PIL import Image
 import os
 import random
-
+from pathlib import Path
 from distributed_sampler_no_evenly_divisible import *
 
 
@@ -64,11 +64,12 @@ class DataLoadPreprocess(Dataset):
         focal = float(sample_path.split()[2])
 
         if self.mode == 'train':
+            data_dir = Path(self.args.data_path)
             print("Path test::::::")
             print(self.args.data_path)
             print(sample_path.split()[0])
             print(sample_path.split()[1])
-            print(os.path.join(self.args.data_path, '' +  sample_path.split()[0]))
+            print(data_dir/sample_path.split()[0])
             print(os.path.join(paths=(self.args.data_path,  sample_path.split()[0])))
             print("Path test::::::")
             image_path = os.path.join(self.args.data_path,  sample_path.split()[0])

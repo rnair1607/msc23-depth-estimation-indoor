@@ -41,7 +41,7 @@ class Custom_loss(nn.Module):
             return torch.sum(torch.absolute(diff)) / num_pixels
 
     def forward(self, pred, gt):
-        ssim = StructuralSimilarityIndexMeasure()
+        ssim = StructuralSimilarityIndexMeasure().to('cuda')
         ssim_loss = torch.mean(
             1  - ssim(pred,gt)
         )

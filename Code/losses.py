@@ -13,7 +13,7 @@ class Scale_invariant_loss(nn.Module):
         # print("pred::::",pred)
         # print("gt::::",gt)
         log_diff = torch.log(pred) - torch.log(gt)
-        print("log_diff",log_diff)
+        # print("log_diff",log_diff)
         num_pixels = float(log_diff.size(dim=1))
         print("num_pixels:::",num_pixels)
     

@@ -11,7 +11,7 @@ class Scale_invariant_loss(nn.Module):
 
     def forward(self, pred, gt):
         log_diff = torch.log(pred) - torch.log(gt)
-        num_pixels = float(log_diff.size())
+        num_pixels = float(log_diff.size(dim=1))
     
         if num_pixels == 0:
             return np.nan

@@ -248,23 +248,23 @@ def main_worker(gpu, ngpus_per_node, args):
     print("Total number of learning parameters: {}".format(num_params_update))
 
 
-    # if args.distributed:
-    if args.gpu is not None:
-        torch.cuda.set_device(args.gpu)
-        model.cuda(args.gpu)
-        args.batch_size = int(args.batch_size / ngpus_per_node)
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
-        # else:
-        #     model.cuda()
-        #     model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
+    if args.distributed:
+        if args.gpu is not None:
+            torch.cuda.set_device(args.gpu)
+            model.cuda(args.gpu)
+            args.batch_size = int(args.batch_size / ngpus_per_node)
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
+        else:
+            model.cuda()
+            model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
     else:
-    # model = torch.nn.DataParallel(model)
+        model = torch.nn.DataParallel(model)
         model.cuda()
 
-    # if args.distributed:
-    #     print("Model Initialized on GPU: {}".format(args.gpu))
-    # else:
-    print("Model Initialized")
+    if args.distributed:
+        print("Model Initialized on GPU: {}".format(args.gpu))
+    else:
+        print("Model Initialized")
 
     global_step = 0
     best_eval_measures_lower_better = torch.zeros(6).cpu() + 1e3
@@ -317,9 +317,9 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
     while epoch < args.num_epochs:
-        # if args.distributed:
-        #     dataloader.train_sampler.set_epoch(epoch)
-        # print(dir(dataloader.data))
+        if args.distributed:
+            dataloader.train_sampler.set_epoch(epoch)
+        print(dir(dataloader.data))
         for step, sample_batched in enumerate(dataloader.data):
             optimizer.zero_grad()
             before_op_time = time.time()
@@ -403,9 +403,55 @@ def main_worker(gpu, ngpus_per_node, args):
 
     
 def main():
-    print("Entered Main!")
+
+    if args.mode != 'train':
+        print('train.py is only for training. Use test.py instead.')
+        return -1
+
+    model_filename = args.model_name + '.py'
+    command = 'mkdir ' + args.log_directory + '/' + args.model_name
+    os.system(command)
+
+    args_out_path = args.log_directory + '/' + args.model_name + '/' + sys.argv[1]
+    command = 'cp ' + sys.argv[1] + ' ' + args_out_path
+    os.system(command)
+
+    if args.checkpoint_path == '':
+        model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
+        command = 'cp model.py ' + model_out_path
+        os.system(command)
+        aux_out_path = args.log_directory + '/' + args.model_name + '/.'
+        command = 'cp train.py ' + aux_out_path
+        os.system(command)
+        command = 'cp data.py ' + aux_out_path
+        os.system(command)
+    else:
+        loaded_model_dir = os.path.dirname(args.checkpoint_path)
+        loaded_model_name = os.path.basename(loaded_model_dir)
+        loaded_model_filename = loaded_model_name + '.py'
+
+        model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
+        command = 'cp ' + loaded_model_dir + '/' + loaded_model_filename + ' ' + model_out_path
+        os.system(command)
+
+    torch.cuda.empty_cache()
+    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+
     ngpus_per_node = torch.cuda.device_count()
-    main_worker(args.gpu, ngpus_per_node, args)
+    if ngpus_per_node > 1 and not args.multiprocessing_distributed:
+        print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
+        return -1
+
+    if args.do_online_eval:
+        print("You have specified --do_online_eval.")
+        print("This will evaluate the model every eval_freq {} steps and save best models for individual eval metrics."
+              .format(args.eval_freq))
+
+    if args.multiprocessing_distributed:
+        args.world_size = ngpus_per_node * args.world_size
+        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+    else:
+        main_worker(args.gpu, ngpus_per_node, args)
 
 if __name__ == '__main__':
     main()

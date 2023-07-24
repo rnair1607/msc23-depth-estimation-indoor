@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader,IterableDataset
 import torch.utils.data.distributed
 from torchvision import transforms
 from PIL import Image
@@ -33,7 +33,7 @@ class DataLoader(object):
             # else:
             #     self.train_sampler = None
     
-            self.data = DataLoader(self.training_samples, args.batch_size,
+            self.data = DataLoader(self.training_samples, batch_size=args.batch_size,
                                 #    shuffle=(self.train_sampler is None),
                                 #    num_workers=args.num_threads,
                                 #    pin_memory=True,
@@ -46,7 +46,7 @@ class DataLoader(object):
 
             
             
-class DataLoadPreprocess(Dataset):
+class DataLoadPreprocess(IterableDataset):
     def __init__(self, args, mode, transform=None):
         self.args = args
         with open(args.filenames_file, 'r') as f:
@@ -170,6 +170,9 @@ class DataLoadPreprocess(Dataset):
     
     def __len__(self):
         return len(self.filenames)
+    
+    def __iter__(self):
+        return iter(self.filenames)
 
 
 class ToTensor(object):

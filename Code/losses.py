@@ -26,7 +26,7 @@ class Scale_invariant_loss(nn.Module):
 
 class Custom_loss(nn.Module):
     def __init__(self):
-        super(Scale_invariant_loss, self).__init__()
+        super(Custom_loss, self).__init__()
 
 
     def l1(self,pred,gt):

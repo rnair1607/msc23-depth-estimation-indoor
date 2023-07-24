@@ -33,7 +33,7 @@ class DataLoader(object):
             # else:
             #     self.train_sampler = None
     
-            self.data = DataLoader(self.training_samples, batch_size=args.batch_size,
+            self.data = DataLoader(self.training_samples, args.batch_size,
                                 #    shuffle=(self.train_sampler is None),
                                 #    num_workers=args.num_threads,
                                 #    pin_memory=True,

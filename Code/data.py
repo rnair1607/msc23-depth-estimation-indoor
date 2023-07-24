@@ -64,12 +64,12 @@ class DataLoadPreprocess(Dataset):
         focal = float(sample_path.split()[2])
 
         if self.mode == 'train':
-            data_dir = Path(self.args.data_path)
+            train_data_dir = Path(self.args.data_path+sample_path.split()[0])
             print("Path test::::::")
             print(self.args.data_path)
             print(sample_path.split()[0])
             print(sample_path.split()[1])
-            print(data_dir/sample_path.split()[0])
+            print("Check this:::",train_data_dir)
             print(os.path.join(paths=(self.args.data_path,  sample_path.split()[0])))
             print("Path test::::::")
             image_path = os.path.join(self.args.data_path,  sample_path.split()[0])

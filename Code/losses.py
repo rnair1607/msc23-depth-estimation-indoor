@@ -14,9 +14,9 @@ class Scale_invariant_loss(nn.Module):
         num_pixels = float(log_diff.size(dim=1))
     
         if num_pixels == 0:
-            return np.nan
+            return float('nan')
         else:
-            return np.sqrt(np.sum(np.square(log_diff)) / num_pixels - np.square(np.sum(log_diff)) / np.square(num_pixels))
+            return torch.sqrt(torch.sum(torch.square(log_diff)) / num_pixels - torch.square(torch.sum(log_diff)) / torch.square(num_pixels))
 
 class Custom_loss(nn.Module):
     def __init__(self):
@@ -25,14 +25,14 @@ class Custom_loss(nn.Module):
 
     def l1(self,pred,gt):
     
-        assert(np.all(np.isfinite(pred) & np.isfinite(gt) & (pred > 0) & (gt > 0)))
+        assert(torch.all(torch.isfinite(pred) & torch.isfinite(gt) & (pred > 0) & (gt > 0)))
         diff = pred - gt
         num_pixels = float(diff.size)
         
         if num_pixels == 0:
-            return np.nan
+            return float('nan')
         else:
-            return np.sum(np.absolute(diff)) / num_pixels
+            return torch.sum(torch.absolute(diff)) / num_pixels
 
     def forward(self, pred, gt):
         ssim = StructuralSimilarityIndexMeasure()

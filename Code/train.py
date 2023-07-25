@@ -21,7 +21,7 @@ import threading
 from tqdm import tqdm
 import numpy as np
 
-from model import AcaModel, bn_init_as_tf, weights_init_xavier
+from model import AcaModel, bn_init_as_tf, weights_init_xavier, silog_loss
 # from loss import ssim
 from data import AcaDataLoader
 from utils import AverageMeter, DepthNorm, colorize
@@ -294,11 +294,13 @@ def main_worker(gpu, ngpus_per_node, args):
                 eval_summary_path = os.path.join(args.log_directory, 'eval')
             eval_summary_writer = SummaryWriter(eval_summary_path, flush_secs=30)
 
-    selected_loss = None
-    if args.loss == 'Scale_invariant_loss':
-        selected_loss = Scale_invariant_loss()
-    else:
-        selected_loss = Custom_loss()
+    # selected_loss = None
+    # if args.loss == 'Scale_invariant_loss':
+    #     selected_loss = Scale_invariant_loss()
+    # else:
+    #     selected_loss = Custom_loss()
+
+    silog_criterion = silog_loss(variance_focus=args.variance_focus)
     
 
     start_time = time.time()
@@ -333,8 +335,8 @@ def main_worker(gpu, ngpus_per_node, args):
             lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)
 
 
-            loss = selected_loss.forward(depth_est,depth_gt)
-            loss = torch.autograd.Variable(loss, requires_grad = True)
+            loss = silog_criterion.forward(depth_est,depth_gt)
+            # loss = torch.autograd.Variable(loss, requires_grad = True)
             loss.backward()
 
 

@@ -573,7 +573,7 @@ def main():
 
     if args.multiprocessing_distributed:
         args.world_size = ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args),join=True)
     else:
         main_worker(args.gpu, ngpus_per_node, args)
 

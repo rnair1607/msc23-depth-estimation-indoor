@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader,IterableDataset
 import torch.utils.data.distributed
 from torchvision import transforms
-from PIL import Image
+from PIL import Image, ImageFilter
 import os
 import random
 from pathlib import Path
@@ -100,6 +100,14 @@ class DataLoadPreprocess(Dataset):
 
             image, depth_gt = self.random_crop(image, depth_gt, self.args.input_height, self.args.input_width)
             image, depth_gt = self.train_preprocess(image, depth_gt)
+            if self.args.cutDepth is True:
+                do_cutDepth = random.random()
+                if do_cutDepth > 0.7:
+                    image, depth_gt = self.cutDepth(image, depth_gt / 255.0)
+            if self.args.cutEdge is True:
+                do_cutEdge = random.random()
+                if do_cutEdge > 0.7:
+                    image, depth_gt = self.cutDepth(image, depth_gt / 255.0)
             sample = {'image': image, 'depth': depth_gt, 'focal': focal}
         
         else:
@@ -108,16 +116,7 @@ class DataLoadPreprocess(Dataset):
 
             image_path = os.path.join(data_path, "./" + sample_path.split()[0])
             image = np.asarray(Image.open(image_path), dtype=np.float32) / 255.0
-
-            
-
-            # if self.args.do_kb_crop is True:
-            #     height = image.shape[0]
-            #     width = image.shape[1]
-            #     top_margin = int(height - 352)
-            #     left_margin = int((width - 1216) / 2)
-            #     image = image[top_margin:top_margin + 352, left_margin:left_margin + 1216, :]
-                
+        
             
             sample = {'image': image, 'focal': focal}
         
@@ -140,6 +139,23 @@ class DataLoadPreprocess(Dataset):
         img = img[y:y + height, x:x + width, :]
         depth = depth[y:y + height, x:x + width, :]
         return img, depth
+    
+    def cutDepth(self, img, depth):
+        depth_gt = np.expand_dims(depth, axis=2)
+        img[100:300,200:400] = depth_gt[100:300,200:400]
+
+        return img, depth_gt
+    
+
+    def cutEdge(self, img, depth):
+        image_edge = img.convert('L')
+        image_edge = image_edge.filter(ImageFilter.FIND_EDGES)
+        image_edge = np.asarray(image_edge, dtype=np.float32) / 255.0
+        image_edge = np.expand_dims(image_edge, axis=2)
+        img[100:300,150:500] = image_edge[100:300,150:500]
+        
+        return img, depth
+    
 
     def train_preprocess(self, image, depth_gt):
         # Random flipping

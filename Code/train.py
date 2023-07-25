@@ -77,6 +77,8 @@ parser.add_argument('--variance_focus',            type=float, help='lambda in p
 
 # Preprocessing
 parser.add_argument('--do_random_rotate',                      help='if set, will perform random rotation for augmentation', action='store_true')
+parser.add_argument('--cutDepth',                      help='if set, will perform cutdepth augmentation', action='store_true')
+parser.add_argument('--cutEdge',                      help='if set, will perform cutdepth augmentation', action='store_true')
 parser.add_argument('--degree',                    type=float, help='random rotation maximum degree', default=2.5)
 # parser.add_argument('--do_kb_crop',                            help='if set, crop input images as kitti benchmark images', action='store_true')
 # parser.add_argument('--use_right',                             help='if set, will randomly use right images when train on KITTI', action='store_true')

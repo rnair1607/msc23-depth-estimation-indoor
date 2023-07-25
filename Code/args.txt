@@ -18,6 +18,8 @@
 --rank 2
 --loss Custom_loss
 --do_random_rotate
+--cutDepth
+--cutEdge
 --degree 2.5
 --log_directory ./models/
 --multiprocessing_distributed

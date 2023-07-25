@@ -81,7 +81,7 @@ class DataLoadPreprocess(Dataset):
                 depth_gt = self.rotate_image(depth_gt, random_angle, flag=Image.NEAREST)
             
             image = np.asarray(image, dtype=np.float32) / 255.0
-            depth_cpy = np.asarray(depth_gt, dtype=np.float32) 
+            # depth_cpy = np.asarray(depth_gt, dtype=np.float32) 
             depth_gt = np.asarray(depth_gt, dtype=np.float32)
             depth_gt = np.expand_dims(depth_gt, axis=2)
 
@@ -93,7 +93,7 @@ class DataLoadPreprocess(Dataset):
             if self.args.cutDepth is True:
                 do_cutDepth = random.random()
                 if do_cutDepth > 0.7:
-                    image = self.cutDepth(image, depth_cpy)
+                    image = self.cutDepth(image, depth_gt)
             if self.args.cutEdge is True:
                 do_cutEdge = random.random()
                 if do_cutEdge > 0.7:
@@ -131,9 +131,9 @@ class DataLoadPreprocess(Dataset):
         return img, depth
     
     def cutDepth(self, img, depth):
-        dd = np.expand_dims(depth, axis=1)
-        print("shape check::",dd.shape)
-        img[100:300,200:400] = dd[100:300,200:400]
+        # dd = np.expand_dims(depth, axis=1)
+        print("shape check::",depth.shape)
+        img[100:300,200:400] = depth[100:300,200:400]
 
         return img
     

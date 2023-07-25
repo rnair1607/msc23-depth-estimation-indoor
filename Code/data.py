@@ -82,8 +82,10 @@ class DataLoadPreprocess(Dataset):
             
             image = np.asarray(image, dtype=np.float32) / 255.0
             # depth_cpy = np.asarray(depth_gt, dtype=np.float32) 
-            depth_gt = np.asarray(depth_gt, dtype=np.float32) / 255.0
+            depth_gt = np.asarray(depth_gt, dtype=np.float32) 
+            dd = depth_gt / 255.0
             depth_gt = np.expand_dims(depth_gt, axis=2)
+            dd = np.expand_dims(dd, axis=2)
 
             depth_gt = depth_gt / 1000.0
             
@@ -93,7 +95,7 @@ class DataLoadPreprocess(Dataset):
             if self.args.cutDepth is True:
                 do_cutDepth = random.random()
                 if do_cutDepth > 0.7:
-                    image = self.cutDepth(image, depth_gt)
+                    image = self.cutDepth(image, dd)
             if self.args.cutEdge is True:
                 do_cutEdge = random.random()
                 if do_cutEdge > 0.7:

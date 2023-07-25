@@ -23,7 +23,7 @@
 
 --degree 2.5
 --log_directory ./models/
---multiprocessing_distributed
+
 --dist_url tcp://127.0.0.1:2345
 
 --log_freq 100

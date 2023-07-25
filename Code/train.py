@@ -334,8 +334,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
             lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)
 
-
-            loss = silog_criterion.forward(depth_est,depth_gt)
+            mask = depth_gt > 0.1
+            loss = silog_criterion.forward(depth_est,depth_gt,mask.to(torch.bool))
             # loss = torch.autograd.Variable(loss, requires_grad = True)
             loss.backward()
 

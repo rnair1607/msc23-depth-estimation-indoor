@@ -85,6 +85,7 @@ class DataLoadPreprocess(Dataset):
                 depth_gt = self.rotate_image(depth_gt, random_angle, flag=Image.NEAREST)
             
             image = np.asarray(image, dtype=np.float32) / 255.0
+            depth_cpy = np.asarray(depth_gt, dtype=np.float32) / 255.0
             depth_gt = np.asarray(depth_gt, dtype=np.float32)
             depth_gt = np.expand_dims(depth_gt, axis=2)
 
@@ -96,11 +97,11 @@ class DataLoadPreprocess(Dataset):
             if self.args.cutDepth is True:
                 do_cutDepth = random.random()
                 if do_cutDepth > 0.7:
-                    image, depth_gt = self.cutDepth(image, np.asarray(depth_gt, dtype=np.float32) / 255.0)
+                    image = self.cutDepth(image, depth_cpy)
             if self.args.cutEdge is True:
                 do_cutEdge = random.random()
                 if do_cutEdge > 0.7:
-                    image, depth_gt = self.cutEdge(image, np.asarray(depth_gt, dtype=np.float32) / 255.0)
+                    image = self.cutEdge(image)
             sample = {'image': image, 'depth': depth_gt, 'focal': focal}
         
         else:
@@ -138,17 +139,17 @@ class DataLoadPreprocess(Dataset):
         print("shape check::",dd.shape)
         img[100:300,200:400] = dd[100:300,200:400]
 
-        return img, depth
+        return img
     
 
-    def cutEdge(self, img, depth):
+    def cutEdge(self, img):
         image_edge = img.convert('L')
         image_edge = image_edge.filter(ImageFilter.FIND_EDGES)
         image_edge = np.asarray(image_edge, dtype=np.float32) / 255.0
         image_edge = np.expand_dims(image_edge, axis=2)
         img[100:300,150:500] = image_edge[100:300,150:500]
         
-        return img, depth
+        return img
     
 
     def train_preprocess(self, image, depth_gt):

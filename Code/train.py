@@ -12,6 +12,7 @@ import torch.nn.utils as utils
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.distributed import init_process_group, destroy_process_group
 
 from tensorboardX import SummaryWriter
 
@@ -26,8 +27,6 @@ from model import AcaModel, bn_init_as_tf, weights_init_xavier, silog_loss
 from data import AcaDataLoader
 from utils import AverageMeter, DepthNorm, colorize
 from losses import Custom_loss, Scale_invariant_loss
-
-# print("entered the tain file")
 
 
 # Arguments
@@ -307,6 +306,15 @@ def online_eval(model, dataloader_eval, gpu, ngpus):
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
 
+    if args.gpu is not None:
+        print("Use GPU: {} for training".format(args.gpu))
+
+    if args.distributed:
+        if args.dist_url == "env://" and args.rank == -1:
+            args.rank = int(os.environ["RANK"])
+        if args.multiprocessing_distributed:
+            args.rank = args.rank * ngpus_per_node + gpu
+        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
     
     # Create model
     model = AcaModel(args)
@@ -327,10 +335,10 @@ def main_worker(gpu, ngpus_per_node, args):
             torch.cuda.set_device(args.gpu)
             model.cuda(args.gpu)
             args.batch_size = int(args.batch_size / ngpus_per_node)
-            # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         else:
             model.cuda()
-            # model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
+            model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
     else:
         # model = torch.nn.DataParallel(model)
         model.cuda()

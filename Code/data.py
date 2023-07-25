@@ -142,6 +142,7 @@ class DataLoadPreprocess(Dataset):
     
     def cutDepth(self, img, depth):
         depth_gt = np.expand_dims(depth, axis=2)
+        print("shape check::" depth_gt.shape)
         img[100:300,200:400] = depth_gt[100:300,200:400]
 
         return img, depth_gt

@@ -74,13 +74,6 @@ class DataLoadPreprocess(Dataset):
             image = Image.open(image_path)
             depth_gt = Image.open(depth_path)
             
-            # if self.args.do_kb_crop is True:
-            #     height = image.height
-            #     width = image.width
-            #     top_margin = int(height - 352)
-            #     left_margin = int((width - 1216) / 2)
-            #     depth_gt = depth_gt.crop((left_margin, top_margin, left_margin + 1216, top_margin + 352))
-            #     image = image.crop((left_margin, top_margin, left_margin + 1216, top_margin + 352))
             
             # To avoid blank boundaries due to pixel registration
             depth_gt = depth_gt.crop((43, 45, 608, 472))
@@ -92,14 +85,6 @@ class DataLoadPreprocess(Dataset):
                 depth_gt = self.rotate_image(depth_gt, random_angle, flag=Image.NEAREST)
             
             image = np.asarray(image, dtype=np.float32) / 255.0
-            if self.args.cutDepth is True:
-                do_cutDepth = random.random()
-                if do_cutDepth > 0.7:
-                    image, depth_gt = self.cutDepth(image, np.asarray(depth_gt, dtype=np.float32) / 255.0)
-            if self.args.cutEdge is True:
-                do_cutEdge = random.random()
-                if do_cutEdge > 0.7:
-                    image, depth_gt = self.cutDepth(image, np.asarray(depth_gt, dtype=np.float32) / 255.0)
             depth_gt = np.asarray(depth_gt, dtype=np.float32)
             depth_gt = np.expand_dims(depth_gt, axis=2)
 
@@ -108,6 +93,14 @@ class DataLoadPreprocess(Dataset):
 
             image, depth_gt = self.random_crop(image, depth_gt, self.args.input_height, self.args.input_width)
             image, depth_gt = self.train_preprocess(image, depth_gt)
+            if self.args.cutDepth is True:
+                do_cutDepth = random.random()
+                if do_cutDepth > 0.7:
+                    image, depth_gt = self.cutDepth(image, np.asarray(depth_gt, dtype=np.float32) / 255.0)
+            if self.args.cutEdge is True:
+                do_cutEdge = random.random()
+                if do_cutEdge > 0.7:
+                    image, depth_gt = self.cutEdge(image, np.asarray(depth_gt, dtype=np.float32) / 255.0)
             sample = {'image': image, 'depth': depth_gt, 'focal': focal}
         
         else:
@@ -141,9 +134,9 @@ class DataLoadPreprocess(Dataset):
         return img, depth
     
     def cutDepth(self, img, depth):
-        depth_gt = np.expand_dims(depth, axis=1)
-        print("shape check::",depth_gt.shape)
-        img[100:300,200:400] = depth_gt[100:300,200:400]
+        dd = np.expand_dims(depth, axis=1)
+        print("shape check::",dd.shape)
+        img[100:300,200:400] = dd[100:300,200:400]
 
         return img, depth
     

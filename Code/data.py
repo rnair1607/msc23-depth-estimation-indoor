@@ -64,10 +64,6 @@ class DataLoadPreprocess(Dataset):
         focal = float(sample_path.split()[2])
 
         if self.mode == 'train':
-            # print("Path test::::::")
-            # print(Path(self.args.data_path+sample_path.split()[0]))
-            # print(Path(self.args.data_path+sample_path.split()[1]))
-            # print("Path test::::::")
             image_path = Path(self.args.data_path+sample_path.split()[0])
             depth_path = Path(self.args.data_path+sample_path.split()[1])
     
@@ -85,7 +81,7 @@ class DataLoadPreprocess(Dataset):
                 depth_gt = self.rotate_image(depth_gt, random_angle, flag=Image.NEAREST)
             
             image = np.asarray(image, dtype=np.float32) / 255.0
-            depth_cpy = np.asarray(depth_gt, dtype=np.float32) / 255.0
+            depth_cpy = np.asarray(depth_gt, dtype=np.float32) 
             depth_gt = np.asarray(depth_gt, dtype=np.float32)
             depth_gt = np.expand_dims(depth_gt, axis=2)
 

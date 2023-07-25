@@ -231,6 +231,78 @@ def set_misc(model):
                 parameters.requires_grad = False
 
 
+def online_eval(model, dataloader_eval, gpu, ngpus):
+    eval_measures = torch.zeros(10).cuda(device=gpu)
+    for _, eval_sample_batched in enumerate(tqdm(dataloader_eval.data)):
+        with torch.no_grad():
+            image = torch.autograd.Variable(eval_sample_batched['image'].cuda(gpu, non_blocking=True))
+            focal = torch.autograd.Variable(eval_sample_batched['focal'].cuda(gpu, non_blocking=True))
+            gt_depth = eval_sample_batched['depth']
+            has_valid_depth = eval_sample_batched['has_valid_depth']
+            if not has_valid_depth:
+                # print('Invalid depth. continue.')
+                continue
+
+            _, _, _, _, pred_depth = model(image, focal)
+
+            pred_depth = pred_depth.cpu().numpy().squeeze()
+            gt_depth = gt_depth.cpu().numpy().squeeze()
+
+        if args.do_kb_crop:
+            height, width = gt_depth.shape
+            top_margin = int(height - 352)
+            left_margin = int((width - 1216) / 2)
+            pred_depth_uncropped = np.zeros((height, width), dtype=np.float32)
+            pred_depth_uncropped[top_margin:top_margin + 352, left_margin:left_margin + 1216] = pred_depth
+            pred_depth = pred_depth_uncropped
+
+        pred_depth[pred_depth < args.min_depth_eval] = args.min_depth_eval
+        pred_depth[pred_depth > args.max_depth_eval] = args.max_depth_eval
+        pred_depth[np.isinf(pred_depth)] = args.max_depth_eval
+        pred_depth[np.isnan(pred_depth)] = args.min_depth_eval
+
+        valid_mask = np.logical_and(gt_depth > args.min_depth_eval, gt_depth < args.max_depth_eval)
+
+        if args.garg_crop or args.eigen_crop:
+            gt_height, gt_width = gt_depth.shape
+            eval_mask = np.zeros(valid_mask.shape)
+
+            if args.garg_crop:
+                eval_mask[int(0.40810811 * gt_height):int(0.99189189 * gt_height), int(0.03594771 * gt_width):int(0.96405229 * gt_width)] = 1
+
+            elif args.eigen_crop:
+                if args.dataset == 'kitti':
+                    eval_mask[int(0.3324324 * gt_height):int(0.91351351 * gt_height), int(0.0359477 * gt_width):int(0.96405229 * gt_width)] = 1
+                else:
+                    eval_mask[45:471, 41:601] = 1
+
+            valid_mask = np.logical_and(valid_mask, eval_mask)
+
+        measures = compute_errors(gt_depth[valid_mask], pred_depth[valid_mask])
+
+        eval_measures[:9] += torch.tensor(measures).cuda(device=gpu)
+        eval_measures[9] += 1
+
+    if args.multiprocessing_distributed:
+        group = dist.new_group([i for i in range(ngpus)])
+        dist.all_reduce(tensor=eval_measures, op=dist.ReduceOp.SUM, group=group)
+
+    if not args.multiprocessing_distributed or gpu == 0:
+        eval_measures_cpu = eval_measures.cpu()
+        cnt = eval_measures_cpu[9].item()
+        eval_measures_cpu /= cnt
+        print('Computing errors for {} eval samples'.format(int(cnt)))
+        print("{:>7}, {:>7}, {:>7}, {:>7}, {:>7}, {:>7}, {:>7}, {:>7}, {:>7}".format('silog', 'abs_rel', 'log10', 'rms',
+                                                                                     'sq_rel', 'log_rms', 'd1', 'd2',
+                                                                                     'd3'))
+        for i in range(8):
+            print('{:7.3f}, '.format(eval_measures_cpu[i]), end='')
+        print('{:7.3f}'.format(eval_measures_cpu[8]))
+        return eval_measures_cpu
+
+    return None
+
+
 
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
@@ -282,6 +354,7 @@ def main_worker(gpu, ngpus_per_node, args):
     model_just_loaded = False
 
     dataloader = AcaDataLoader(args, 'train')
+    dataloader_eval = AcaDataLoader(args, 'online_eval')
     # print("Loaded Data loader")
    
     # Logging
@@ -390,7 +463,42 @@ def main_worker(gpu, ngpus_per_node, args):
                                 'optimizer': optimizer.state_dict()}
                     torch.save(checkpoint, args.log_directory + '/' + args.model_name + '/model-{}'.format(global_step))
 
-            
+            if args.do_online_eval and global_step and global_step % args.eval_freq == 0 and not model_just_loaded:
+                time.sleep(0.1)
+                model.eval()
+                eval_measures = online_eval(model, dataloader_eval, gpu, ngpus_per_node)
+                if eval_measures is not None:
+                    for i in range(9):
+                        eval_summary_writer.add_scalar(eval_metrics[i], eval_measures[i].cpu(), int(global_step))
+                        measure = eval_measures[i]
+                        is_best = False
+                        if i < 6 and measure < best_eval_measures_lower_better[i]:
+                            old_best = best_eval_measures_lower_better[i].item()
+                            best_eval_measures_lower_better[i] = measure.item()
+                            is_best = True
+                        elif i >= 6 and measure > best_eval_measures_higher_better[i-6]:
+                            old_best = best_eval_measures_higher_better[i-6].item()
+                            best_eval_measures_higher_better[i-6] = measure.item()
+                            is_best = True
+                        if is_best:
+                            old_best_step = best_eval_steps[i]
+                            old_best_name = '/model-{}-best_{}_{:.5f}'.format(old_best_step, eval_metrics[i], old_best)
+                            model_path = args.log_directory + '/' + args.model_name + old_best_name
+                            if os.path.exists(model_path):
+                                command = 'rm {}'.format(model_path)
+                                os.system(command)
+                            best_eval_steps[i] = global_step
+                            model_save_name = '/model-{}-best_{}_{:.5f}'.format(global_step, eval_metrics[i], measure)
+                            print('New best for {}. Saving model: {}'.format(eval_metrics[i], model_save_name))
+                            checkpoint = {'global_step': global_step,
+                                          'model': model.state_dict(),
+                                          'optimizer': optimizer.state_dict(),
+                                          'best_eval_measures_higher_better': best_eval_measures_higher_better,
+                                          'best_eval_measures_lower_better': best_eval_measures_lower_better,
+                                          'best_eval_steps': best_eval_steps
+                                          }
+                            torch.save(checkpoint, args.log_directory + '/' + args.model_name + model_save_name)
+                    eval_summary_writer.flush()
                 model.train()
                 block_print()
                 set_misc(model)
@@ -404,7 +512,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
         writer.close()
-
+        if args.do_online_eval:
+            eval_summary_writer.close()
     
 def main():
 
@@ -412,50 +521,50 @@ def main():
         print('train.py is only for training. Use test.py instead.')
         return -1
 
-    # model_filename = args.model_name + '.py'
-    # command = 'mkdir ' + args.log_directory + '/' + args.model_name
-    # os.system(command)
+    model_filename = args.model_name + '.py'
+    command = 'mkdir ' + args.log_directory + '/' + args.model_name
+    os.system(command)
 
-    # args_out_path = args.log_directory + '/' + args.model_name + '/' + sys.argv[1]
-    # command = 'cp ' + sys.argv[1] + ' ' + args_out_path
-    # os.system(command)
+    args_out_path = args.log_directory + '/' + args.model_name + '/' + sys.argv[1]
+    command = 'cp ' + sys.argv[1] + ' ' + args_out_path
+    os.system(command)
 
-    # if args.checkpoint_path == '':
-    #     model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-    #     command = 'cp model.py ' + model_out_path
-    #     os.system(command)
-    #     aux_out_path = args.log_directory + '/' + args.model_name + '/.'
-    #     command = 'cp train.py ' + aux_out_path
-    #     os.system(command)
-    #     command = 'cp data.py ' + aux_out_path
-    #     os.system(command)
-    # else:
-    #     loaded_model_dir = os.path.dirname(args.checkpoint_path)
-    #     loaded_model_name = os.path.basename(loaded_model_dir)
-    #     loaded_model_filename = loaded_model_name + '.py'
+    if args.checkpoint_path == '':
+        model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
+        command = 'cp model.py ' + model_out_path
+        os.system(command)
+        aux_out_path = args.log_directory + '/' + args.model_name + '/.'
+        command = 'cp train.py ' + aux_out_path
+        os.system(command)
+        command = 'cp data.py ' + aux_out_path
+        os.system(command)
+    else:
+        loaded_model_dir = os.path.dirname(args.checkpoint_path)
+        loaded_model_name = os.path.basename(loaded_model_dir)
+        loaded_model_filename = loaded_model_name + '.py'
 
-    #     model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-    #     command = 'cp ' + loaded_model_dir + '/' + loaded_model_filename + ' ' + model_out_path
-    #     os.system(command)
+        model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
+        command = 'cp ' + loaded_model_dir + '/' + loaded_model_filename + ' ' + model_out_path
+        os.system(command)
 
     torch.cuda.empty_cache()
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
     ngpus_per_node = torch.cuda.device_count()
-    # if ngpus_per_node > 1 and not args.multiprocessing_distributed:
-    #     print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
-    #     return -1
+    if ngpus_per_node > 1 and not args.multiprocessing_distributed:
+        print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
+        return -1
 
-    # if args.do_online_eval:
-    #     print("You have specified --do_online_eval.")
-    #     print("This will evaluate the model every eval_freq {} steps and save best models for individual eval metrics."
-    #           .format(args.eval_freq))
+    if args.do_online_eval:
+        print("You have specified --do_online_eval.")
+        print("This will evaluate the model every eval_freq {} steps and save best models for individual eval metrics."
+              .format(args.eval_freq))
 
-    # if args.multiprocessing_distributed:
-    #     args.world_size = ngpus_per_node * args.world_size
-    #     mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
-    # else:
-    main_worker(args.gpu, ngpus_per_node, args)
+    if args.multiprocessing_distributed:
+        args.world_size = ngpus_per_node * args.world_size
+        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+    else:
+        main_worker(args.gpu, ngpus_per_node, args)
 
 if __name__ == '__main__':
     main()

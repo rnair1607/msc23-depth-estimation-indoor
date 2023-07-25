@@ -40,9 +40,25 @@ class AcaDataLoader(object):
                                    sampler= self.train_sampler
                                    )
         
+        elif mode == 'online_eval':
+            self.testing_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
+            if args.distributed:
+                # self.eval_sampler = torch.utils.data.distributed.DistributedSampler(self.testing_samples, shuffle=False)
+                self.eval_sampler = DistributedSamplerNoEvenlyDivisible(self.testing_samples, shuffle=False)
+            else:
+                self.eval_sampler = None
+            self.data = DataLoader(self.testing_samples, 1,
+                                   shuffle=False,
+                                   num_workers=1,
+                                   pin_memory=True,
+                                   sampler=self.eval_sampler)
+        
         elif mode == 'test':
             self.testing_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
             self.data = DataLoader(self.testing_samples, 1, shuffle=False, num_workers=1)
+
+        else:
+            print('mode should be one of \'train, test, online_eval\'. Got {}'.format(mode))
 
     
     # def __iter__(self):
@@ -51,13 +67,18 @@ class AcaDataLoader(object):
             
             
 class DataLoadPreprocess(Dataset):
-    def __init__(self, args, mode, transform=None):
+    def __init__(self, args, mode, transform=None, is_for_online_eval=False):
         self.args = args
-        with open(args.filenames_file, 'r') as f:
-            self.filenames = f.readlines()
+        if mode == 'online_eval':
+            with open(args.filenames_file_eval, 'r') as f:
+                self.filenames = f.readlines()
+        else:
+            with open(args.filenames_file, 'r') as f:
+                self.filenames = f.readlines()
         self.mode = mode
         self.transform = transform
         self.to_tensor = ToTensor
+        self.is_for_online_eval = is_for_online_eval
             
     def __getitem__(self, idx):
         sample_path = self.filenames[idx]
@@ -104,13 +125,38 @@ class DataLoadPreprocess(Dataset):
         
         else:
             
-            data_path = self.args.data_path
+            if self.mode == 'online_eval':
+                data_path = self.args.data_path_eval
+            else:
+                data_path = self.args.data_path
 
-            image_path = os.path.join(data_path, "./" + sample_path.split()[0])
+            image_path = Path(data_path + sample_path.split()[0])
             image = np.asarray(Image.open(image_path), dtype=np.float32) / 255.0
         
+            if self.mode == 'online_eval':
+                gt_path = self.args.gt_path_eval
+                depth_path = Path(gt_path + sample_path.split()[1])
+                has_valid_depth = False
+                try:
+                    depth_gt = Image.open(depth_path)
+                    has_valid_depth = True
+                except IOError:
+                    depth_gt = False
+                    # print('Missing gt for {}'.format(image_path))
+
+                if has_valid_depth:
+                    depth_gt = np.asarray(depth_gt, dtype=np.float32)
+                    depth_gt = np.expand_dims(depth_gt, axis=2)
+                    # if self.args.dataset == 'nyu':
+                    depth_gt = depth_gt / 1000.0
+                    # else:
+                    #     depth_gt = depth_gt / 256.0
+
             
-            sample = {'image': image, 'focal': focal}
+            if self.mode == 'online_eval':
+                sample = {'image': image, 'depth': depth_gt, 'focal': focal, 'has_valid_depth': has_valid_depth}
+            else:
+                sample = {'image': image, 'focal': focal}
         
         if self.transform:
             sample = self.transform(sample)

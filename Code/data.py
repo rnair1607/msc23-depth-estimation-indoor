@@ -168,7 +168,13 @@ class DataLoadPreprocess(Dataset):
                 sample = {'image': image, 'focal': focal}
         
         if self.transform:
-            sample = self.transform(sample)
+            if self.mode == 'online_eval':
+                sample = self.transform({'image': image, 'depth': depth_gt, 'focal': focal})
+                sample['has_valid_depth'] = has_valid_depth
+            else:
+                sample = self.transform()
+        
+                
         # print("Check getitem:::",sample)
         return sample
     

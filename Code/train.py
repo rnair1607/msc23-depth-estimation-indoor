@@ -312,11 +312,11 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
             args.rank = int(os.environ["RANK"])
-        if args.multiprocessing_distributed:
-            args.rank = args.rank * ngpus_per_node + gpu
-            os.environ['MASTER_ADDR'] = 'localhost'
-            os.environ['MASTER_PORT'] = '5554'
-        dist.init_process_group(backend=args.dist_backend, world_size=args.world_size, rank=args.rank)
+        # if args.multiprocessing_distributed:
+        #     args.rank = args.rank * ngpus_per_node + gpu
+        #     os.environ['MASTER_ADDR'] = 'localhost'
+        #     os.environ['MASTER_PORT'] = '5554'
+        # dist.init_process_group(backend=args.dist_backend, world_size=args.world_size, rank=args.rank)
         # dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
     
     # Create model
@@ -564,9 +564,9 @@ def main():
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
     ngpus_per_node = torch.cuda.device_count()
-    if ngpus_per_node > 1 and not args.multiprocessing_distributed:
-        print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
-        return -1
+    # if ngpus_per_node > 1 and not args.multiprocessing_distributed:
+    #     print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
+    #     return -1
 
     if args.do_online_eval:
         print("You have specified --do_online_eval.")

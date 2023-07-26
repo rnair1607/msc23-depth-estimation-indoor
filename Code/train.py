@@ -564,9 +564,9 @@ def main():
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
     ngpus_per_node = torch.cuda.device_count()
-    # if ngpus_per_node > 1 and not args.multiprocessing_distributed:
-    #     print("This machine has more than 1 gpu. Please specify --multiprocessing_distributed, or set \'CUDA_VISIBLE_DEVICES=0\'")
-    #     return -1
+    if ngpus_per_node > 1 and not args.multiprocessing_distributed:
+        print("This machine has more than 1 gpu.")
+        # return -1
 
     if args.do_online_eval:
         print("You have specified --do_online_eval.")

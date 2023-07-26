@@ -160,7 +160,7 @@ class DataLoadPreprocess(Dataset):
         
         if self.transform:
             sample = self.transform(sample)
-        
+        print("Check getitem:::",sample)
         return sample
     
     def rotate_image(self, image, angle, flag=Image.BILINEAR):

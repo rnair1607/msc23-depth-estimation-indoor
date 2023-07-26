@@ -368,7 +368,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     dataloader = AcaDataLoader(args, 'train')
     dataloader_eval = AcaDataLoader(args, 'online_eval')
-    print("check dataloader_eval::::",dataloader_eval.data)
+    # print("check dataloader_eval::::",dataloader_eval.data)
    
     # Logging
     if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):

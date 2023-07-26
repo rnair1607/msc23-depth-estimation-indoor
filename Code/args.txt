@@ -27,7 +27,7 @@
 
 --log_freq 100
 --do_online_eval
---eval_freq 100
+--eval_freq 10
 --data_path_eval /kaggle/working/mini_sync
 --gt_path_eval /kaggle/working/mini_sync
 --filenames_file_eval /kaggle/working/msc23-depth-estimation-indoor/Code/test_with_gt.txt

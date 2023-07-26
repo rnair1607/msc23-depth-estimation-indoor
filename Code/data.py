@@ -167,8 +167,8 @@ class DataLoadPreprocess(Dataset):
             else:
                 sample = {'image': image, 'focal': focal}
         
-        # if self.transform:
-        #     sample = self.transform(sample)
+        if self.transform:
+            sample = self.transform(sample)
         # print("Check getitem:::",sample)
         return sample
     

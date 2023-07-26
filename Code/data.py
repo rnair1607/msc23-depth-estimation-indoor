@@ -172,7 +172,7 @@ class DataLoadPreprocess(Dataset):
                 sample = self.transform({'image': image, 'depth': depth_gt, 'focal': focal})
                 sample['has_valid_depth'] = has_valid_depth
             else:
-                sample = self.transform()
+                sample = self.transform(sample)
         
                 
         # print("Check getitem:::",sample)

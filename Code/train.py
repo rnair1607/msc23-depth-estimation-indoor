@@ -337,13 +337,15 @@ def main_worker(gpu, ngpus_per_node, args):
         if args.gpu is not None:
             torch.cuda.set_device(args.gpu)
             model.cuda(args.gpu)
-            args.batch_size = int(args.batch_size / ngpus_per_node)
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
-        else:
-            model.cuda()
-            model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
+
+            model = torch.nn.DataParallel(model)
+            # args.batch_size = int(args.batch_size / ngpus_per_node)
+            # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
+        # else:
+        #     model.cuda()
+        #     model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
     else:
-        # model = torch.nn.DataParallel(model)
+        model = torch.nn.DataParallel(model)
         model.cuda()
 
     if args.distributed:

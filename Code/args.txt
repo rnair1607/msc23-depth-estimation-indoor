@@ -28,8 +28,8 @@
 --log_freq 100
 --do_online_eval
 --eval_freq 500
---data_path_eval ../../dataset/nyu_depth_v2/official_splits/test/
---gt_path_eval ../../dataset/nyu_depth_v2/official_splits/test/
+--data_path_eval /kaggle/working/mini_sync
+--gt_path_eval /kaggle/working/mini_sync
 --filenames_file_eval /kaggle/working/msc23-depth-estimation-indoor/Code/test_with_gt.txt
 --min_depth_eval 1e-3
 --max_depth_eval 10

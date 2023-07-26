@@ -26,7 +26,6 @@
 --dist_url tcp://127.0.0.1:2345
 
 --log_freq 100
---do_online_eval
 --eval_freq 20
 --data_path_eval /kaggle/working/mini_sync
 --gt_path_eval /kaggle/working/mini_sync

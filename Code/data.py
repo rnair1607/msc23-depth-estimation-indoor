@@ -127,11 +127,15 @@ class DataLoadPreprocess(Dataset):
             
             if self.mode == 'online_eval':
                 data_path = self.args.data_path_eval
+                print("data_path",data_path)
             else:
                 data_path = self.args.data_path
 
             image_path = Path(data_path + sample_path.split()[0])
             image = np.asarray(Image.open(image_path), dtype=np.float32) / 255.0
+            if self.mode == 'online_eval':
+                print("image_path::",image_path)
+                print("image::",image)
         
             if self.mode == 'online_eval':
                 gt_path = self.args.gt_path_eval
@@ -151,16 +155,19 @@ class DataLoadPreprocess(Dataset):
                     depth_gt = depth_gt / 1000.0
                     # else:
                     #     depth_gt = depth_gt / 256.0
+                print("has depth gt:::",depth_gt)
 
             
             if self.mode == 'online_eval':
+
                 sample = {'image': image, 'depth': depth_gt, 'focal': focal, 'has_valid_depth': has_valid_depth}
+                print("check get item::",sample)
             else:
                 sample = {'image': image, 'focal': focal}
         
         if self.transform:
             sample = self.transform(sample)
-        print("Check getitem:::",sample)
+        # print("Check getitem:::",sample)
         return sample
     
     def rotate_image(self, image, angle, flag=Image.BILINEAR):

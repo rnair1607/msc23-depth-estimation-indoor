@@ -2,9 +2,9 @@
 --model_name Acamodel
 --encoder densenet161_bts
 --dataset nyu
---data_path /kaggle/working/mini_sync
---gt_path /kaggle/working/mini_sync
---filenames_file /kaggle/working/msc23-depth-estimation-indoor/Code/train_with_gt.txt
+--data_path /content/mini_sync
+--gt_path /content/mini_sync
+--filenames_file /content/msc23-depth-estimation-indoor/Code/train_with_gt.txt
 --batch_size 4
 --num_epochs 25
 --learning_rate 1e-4
@@ -27,9 +27,9 @@
 
 --log_freq 100
 --eval_freq 500
---data_path_eval /kaggle/working/mini_sync
---gt_path_eval /kaggle/working/mini_sync
---filenames_file_eval /kaggle/working/msc23-depth-estimation-indoor/Code/test_with_gt.txt
+--data_path_eval /content/mini_sync
+--gt_path_eval /content/mini_sync
+--filenames_file_eval /content/msc23-depth-estimation-indoor/Code/test_with_gt.txt
 --min_depth_eval 1e-3
 --max_depth_eval 10
 --eval_summary_directory ./models/eval/

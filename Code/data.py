@@ -102,112 +102,97 @@ class DataLoadPreprocess(Dataset):
                 depth_gt = self.rotate_image(depth_gt, random_angle, flag=Image.NEAREST)
             
             image = np.asarray(image, dtype=np.float32) / 255.0
-            # depth_cpy = np.asarray(depth_gt, dtype=np.float32) 
             depth_gt = np.asarray(depth_gt, dtype=np.float32) 
-            dd = depth_gt / 255.0
             depth_gt = np.expand_dims(depth_gt, axis=2)
-            dd = np.expand_dims(dd, axis=2)
 
             depth_gt = depth_gt / 1000.0
             
 
-            image, depth_gt = self.random_crop(image, depth_gt, self.args.input_height, self.args.input_width)
-            image, depth_gt = self.train_preprocess(image, depth_gt)
             if self.args.cutDepth is True:
                 do_cutDepth = random.random()
                 if do_cutDepth > 0.7:
-                    image = self.cutDepth(image, dd)
+                    # print("reached cutdepth")
+                    image = self.cutDepth(image, depth_gt)
             if self.args.cutEdge is True:
                 do_cutEdge = random.random()
-                if do_cutEdge > 0.7:
+                if do_cutEdge > 0.8:
+                    # print("reached cutedge")
                     image = self.cutEdge(image)
+            image, depth_gt = self.random_crop(image, depth_gt, self.args.input_height, self.args.input_width)
+            image, depth_gt = self.train_preprocess(image, depth_gt)
             sample = {'image': image, 'depth': depth_gt, 'focal': focal}
         
         else:
             
             if self.mode == 'online_eval':
                 data_path = self.args.data_path_eval
-                # print("data_path",data_path)
             else:
                 data_path = self.args.data_path
 
             image_path = Path(data_path + sample_path.split()[0])
             image = np.asarray(Image.open(image_path), dtype=np.float32) / 255.0
-            # if self.mode == 'online_eval':
-                # print("image_path::",image_path)
-                # print("image::",image)
         
             if self.mode == 'online_eval':
                 gt_path = self.args.gt_path_eval
                 depth_path = Path(gt_path + sample_path.split()[1])
-                print("check depth_path:::",depth_path)
                 has_valid_depth = False
                 try:
                     depth_gt = Image.open(depth_path)
-                    print("check depth_gt:::",depth_gt)
                     has_valid_depth = True
                 except IOError:
                     depth_gt = False
-                    # print('Missing gt for {}'.format(image_path))
-
                 if has_valid_depth:
                     depth_gt = np.asarray(depth_gt, dtype=np.float32)
                     depth_gt = np.expand_dims(depth_gt, axis=2)
-                    # if self.args.dataset == 'nyu':
                     depth_gt = depth_gt / 1000.0
-                    # else:
-                    #     depth_gt = depth_gt / 256.0
-                # print("has depth gt:::",depth_gt)
 
             
             if self.mode == 'online_eval':
 
                 sample = {'image': image, 'depth': depth_gt, 'focal': focal, 'has_valid_depth': has_valid_depth}
-                print("check get item transformed::,reached")
             else:
                 sample = {'image': image, 'focal': focal}
         
         if self.transform:
-            if self.mode == 'online_eval':
-                sample = self.transform({'image': image, 'depth': depth_gt, 'focal': focal})
-                sample['has_valid_depth'] = has_valid_depth
-            else:
-                sample = self.transform(sample)
+            sample = self.transform(sample)
         
                 
-        # print("Check getitem:::",sample)
         return sample
     
     def rotate_image(self, image, angle, flag=Image.BILINEAR):
         result = image.rotate(angle, resample=flag)
         return result
 
-    def random_crop(self, img, depth, height, width):
-        assert img.shape[0] >= height
-        assert img.shape[1] >= width
-        assert img.shape[0] == depth.shape[0]
-        assert img.shape[1] == depth.shape[1]
-        x = random.randint(0, img.shape[1] - width)
-        y = random.randint(0, img.shape[0] - height)
-        img = img[y:y + height, x:x + width, :]
+    def random_crop(self, new_img, depth, height, width):
+        assert new_img.shape[0] >= height
+        assert new_img.shape[1] >= width
+        assert new_img.shape[0] == depth.shape[0]
+        assert new_img.shape[1] == depth.shape[1]
+        x = random.randint(0, new_img.shape[1] - width)
+        y = random.randint(0, new_img.shape[0] - height)
+        new_img = new_img[y:y + height, x:x + width, :]
         depth = depth[y:y + height, x:x + width, :]
-        return img, depth
+        return new_img, depth
     
     def cutDepth(self, img, depth):
-        # dd = np.expand_dims(depth, axis=1)
-        # print("shape check::",depth.shape)
         img[100:300,200:400] = depth[100:300,200:400]
-
+        
         return img
     
 
-    def cutEdge(self, img):
-        image_edge = img.convert('L')
-        image_edge = image_edge.filter(ImageFilter.FIND_EDGES)
-        image_edge = np.asarray(image_edge, dtype=np.float32) / 255.0
-        image_edge = np.expand_dims(image_edge, axis=2)
-        img[100:300,150:500] = image_edge[100:300,150:500]
+    def cutEdge(self,img):
+
+        img = Image.fromarray(np.uint8(img*255.0))
+
+        edg_img = img.convert('L')
+        edg_img = edg_img.filter(ImageFilter.FIND_EDGES)
+        img = np.asarray(img, dtype=np.float32) 
+        edg_img = np.asarray(edg_img, dtype=np.float32) 
+        edg_img = np.expand_dims(edg_img, axis=2)
+        img[100:300,150:500] = edg_img[100:300,150:500]
         
+        img = img / 255.0
+
         return img
     
 
@@ -231,10 +216,7 @@ class DataLoadPreprocess(Dataset):
         image_aug = image ** gamma
 
         # brightness augmentation
-        if self.args.dataset == 'nyu':
-            brightness = random.uniform(0.75, 1.25)
-        else:
-            brightness = random.uniform(0.9, 1.1)
+        brightness = random.uniform(0.75, 1.25)
         image_aug = image_aug * brightness
 
         # color augmentation
@@ -249,9 +231,6 @@ class DataLoadPreprocess(Dataset):
     def __len__(self):
         return len(self.filenames)
     
-    # def __iter__(self):
-    #     return iter(self.filenames)
-
 
 class ToTensor(object):
     def __init__(self, mode):
@@ -270,6 +249,9 @@ class ToTensor(object):
         if self.mode == 'train':
             depth = self.to_tensor(depth)
             return {'image': image, 'depth': depth, 'focal': focal}
+        else:
+            has_valid_depth = sample['has_valid_depth']
+            return {'image': image, 'depth': depth, 'focal': focal, 'has_valid_depth': has_valid_depth}
         
     
     def to_tensor(self, pic):

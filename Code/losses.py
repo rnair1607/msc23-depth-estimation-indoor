@@ -15,13 +15,13 @@ class Scale_invariant_loss(nn.Module):
         log_diff = torch.log(pred) - torch.log(gt)
         # print("log_diff",log_diff)
         num_pixels = float(log_diff.size(dim=1))
-        print("num_pixels:::",num_pixels)
+        # print("num_pixels:::",num_pixels)
     
         if num_pixels == 0:
-            print("reached nan in loss")
+            # print("reached nan in loss")
             return float('nan')
         else:
-            print("Didnt go into nan")
+            # print("Didnt go into nan")
             return torch.sqrt(torch.sum(torch.square(torch.tensor(log_diff))) / num_pixels - torch.square(torch.sum(torch.tensor(log_diff))) / torch.square(torch.tensor(num_pixels)))
 
 class Custom_loss(nn.Module):

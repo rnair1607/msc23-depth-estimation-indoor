@@ -1,0 +1,39 @@
+--mode train
+--model_name Acamodel
+--encoder densenet121
+--dataset nyu
+--data_path D:/mini_sync
+--gt_path D:/mini_sync
+--filenames_file D:/Strathclyde/Dissertation/msc23-depth-estimation-indoor/Code/train_with_gt.txt
+--batch_size 4
+--num_epochs 15
+--learning_rate 1e-4
+--weight_decay 1e-2
+--adam_eps 1e-3
+--num_threads 1
+--input_height 416
+--input_width 544
+--max_depth 10
+--gpu 0
+--rank 2
+--loss Custom_loss
+--do_random_rotate
+--do_online_eval
+--cutDepth
+--cutEdge
+
+
+
+--degree 2.5
+--log_directory D:/Strathclyde/Dissertation/msc23-depth-estimation-indoor/Code/models/
+--dist_url tcp://127.0.0.1:2345
+
+--log_freq 100
+--eval_freq 500
+--data_path_eval D:/mini_sync
+--gt_path_eval D:/mini_sync
+--filenames_file_eval D:/Strathclyde/Dissertation/msc23-depth-estimation-indoor/Code/test_with_gt.txt
+--min_depth_eval 1e-3
+--max_depth_eval 10
+--eval_summary_directory D:/Strathclyde/Dissertation/msc23-depth-estimation-indoor/Code/models/eval/
+--eigen_crop

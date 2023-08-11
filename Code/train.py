@@ -23,7 +23,6 @@ from tqdm import tqdm
 import numpy as np
 
 from model import AcaModel, bn_init_as_tf, weights_init_xavier, silog_loss
-# from loss import ssim
 from data import AcaDataLoader
 from utils import AverageMeter, DepthNorm, colorize
 from losses import Custom_loss, Scale_invariant_loss
@@ -52,7 +51,7 @@ parser.add_argument('--input_width',               type=int,   help='input width
 parser.add_argument('--max_depth',                 type=float, help='maximum depth in estimation', default=10)
 
 # Loss
-parser.add_argument('--loss',             type=str,   help='Choos a loss function : Custom_loss or Scale_invariant_loss', default='Scale_invariant_loss')
+parser.add_argument('--loss',             type=str,   help='Choose a loss function : Custom_loss or Scale_invariant_loss', default='Scale_invariant_loss')
 
 # Log and save
 parser.add_argument('--log_directory',             type=str,   help='directory to save checkpoints and summaries', default='')
@@ -65,7 +64,7 @@ parser.add_argument('--fix_first_conv_blocks',                 help='if set, wil
 parser.add_argument('--fix_first_conv_block',                  help='if set, will fix the first conv block', action='store_true')
 parser.add_argument('--bn_no_track_stats',                     help='if set, will not track running stats in batch norm layers', action='store_true')
 parser.add_argument('--weight_decay',              type=float, help='weight decay factor for optimization', default=1e-2)
-parser.add_argument('--bts_size',                  type=int,   help='initial num_filters in bts', default=512)
+parser.add_argument('--aca_size',                  type=int,   help='initial num_filters in acamodel', default=512)
 parser.add_argument('--retrain',                               help='if used with checkpoint_path, will restart training from step zero', action='store_true')
 parser.add_argument('--adam_eps',                  type=float, help='epsilon in Adam optimizer', default=1e-6)
 parser.add_argument('--batch_size',                type=int,   help='batch size', default=4)
@@ -225,7 +224,6 @@ def set_misc(model):
         if not 'encoder' in name:
             continue
         for name2, parameters in child.named_parameters():
-            # print(name, name2)
             if any(x in name2 for x in fixing_layers):
                 parameters.requires_grad = False
 
@@ -239,7 +237,6 @@ def online_eval(model, dataloader_eval, gpu, ngpus):
             gt_depth = eval_sample_batched['depth']
             has_valid_depth = eval_sample_batched['has_valid_depth']
             if not has_valid_depth:
-                # print('Invalid depth. continue.')
                 continue
 
             _, _, _, _, pred_depth = model(image, focal)
@@ -247,13 +244,6 @@ def online_eval(model, dataloader_eval, gpu, ngpus):
             pred_depth = pred_depth.cpu().numpy().squeeze()
             gt_depth = gt_depth.cpu().numpy().squeeze()
 
-        if args.do_kb_crop:
-            height, width = gt_depth.shape
-            top_margin = int(height - 352)
-            left_margin = int((width - 1216) / 2)
-            pred_depth_uncropped = np.zeros((height, width), dtype=np.float32)
-            pred_depth_uncropped[top_margin:top_margin + 352, left_margin:left_margin + 1216] = pred_depth
-            pred_depth = pred_depth_uncropped
 
         pred_depth[pred_depth < args.min_depth_eval] = args.min_depth_eval
         pred_depth[pred_depth > args.max_depth_eval] = args.max_depth_eval
@@ -262,20 +252,6 @@ def online_eval(model, dataloader_eval, gpu, ngpus):
 
         valid_mask = np.logical_and(gt_depth > args.min_depth_eval, gt_depth < args.max_depth_eval)
 
-        if args.garg_crop or args.eigen_crop:
-            gt_height, gt_width = gt_depth.shape
-            eval_mask = np.zeros(valid_mask.shape)
-
-            if args.garg_crop:
-                eval_mask[int(0.40810811 * gt_height):int(0.99189189 * gt_height), int(0.03594771 * gt_width):int(0.96405229 * gt_width)] = 1
-
-            elif args.eigen_crop:
-                if args.dataset == 'kitti':
-                    eval_mask[int(0.3324324 * gt_height):int(0.91351351 * gt_height), int(0.0359477 * gt_width):int(0.96405229 * gt_width)] = 1
-                else:
-                    eval_mask[45:471, 41:601] = 1
-
-            valid_mask = np.logical_and(valid_mask, eval_mask)
 
         measures = compute_errors(gt_depth[valid_mask], pred_depth[valid_mask])
 
@@ -312,12 +288,7 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
             args.rank = int(os.environ["RANK"])
-        # if args.multiprocessing_distributed:
-        #     args.rank = args.rank * ngpus_per_node + gpu
-        #     os.environ['MASTER_ADDR'] = 'localhost'
-        #     os.environ['MASTER_PORT'] = '5554'
-        # dist.init_process_group(backend=args.dist_backend, world_size=args.world_size, rank=args.rank)
-        # dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
+        
     
     # Create model
     model = AcaModel(args)
@@ -339,11 +310,7 @@ def main_worker(gpu, ngpus_per_node, args):
             model.cuda(args.gpu)
 
             model = torch.nn.DataParallel(model)
-            # args.batch_size = int(args.batch_size / ngpus_per_node)
-            # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
-        # else:
-        #     model.cuda()
-        #     model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
+            
     else:
         model = torch.nn.DataParallel(model)
         model.cuda()
@@ -358,7 +325,6 @@ def main_worker(gpu, ngpus_per_node, args):
     best_eval_measures_higher_better = torch.zeros(3).cpu()
     best_eval_steps = np.zeros(9, dtype=np.int32)
 
-    # print("model check::::",dir(model.module))
     optimizer = torch.optim.AdamW([{'params': model.module.encoder.parameters(), 'weight_decay': args.weight_decay},
                                    {'params': model.module.decoder.parameters(), 'weight_decay': 0}],
                                   lr=args.learning_rate, eps=args.adam_eps)
@@ -368,7 +334,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
     dataloader = AcaDataLoader(args, 'train')
     dataloader_eval = AcaDataLoader(args, 'online_eval')
-    # print("check dataloader_eval::::",dataloader_eval.data)
    
     # Logging
     if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
@@ -380,11 +345,6 @@ def main_worker(gpu, ngpus_per_node, args):
                 eval_summary_path = os.path.join(args.log_directory, 'eval')
             eval_summary_writer = SummaryWriter(eval_summary_path, flush_secs=30)
 
-    # selected_loss = None
-    # if args.loss == 'Scale_invariant_loss':
-    #     selected_loss = Scale_invariant_loss()
-    # else:
-    #     selected_loss = Custom_loss()
 
     silog_criterion = silog_loss(variance_focus=args.variance_focus)
     
@@ -407,9 +367,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
     while epoch < args.num_epochs:
-        # if args.distributed:
-        #     dataloader.train_sampler.set_epoch(epoch)
-        # print(dir(dataloader.data))
         for step, sample_batched in enumerate(dataloader.data):
             optimizer.zero_grad()
             before_op_time = time.time()
@@ -422,7 +379,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
             mask = depth_gt > 0.1
             loss = silog_criterion.forward(depth_est,depth_gt,mask.to(torch.bool))
-            # loss = torch.autograd.Variable(loss, requires_grad = True)
             loss.backward()
 
 
@@ -539,17 +495,17 @@ def main():
     os.system(command)
 
     args_out_path = args.log_directory + '/' + args.model_name + '/' + sys.argv[1]
-    command = 'cp ' + sys.argv[1] + ' ' + args_out_path
+    command = 'copy  ' + sys.argv[1] + ' ' + args_out_path
     os.system(command)
 
     if args.checkpoint_path == '':
         model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-        command = 'cp model.py ' + model_out_path
+        command = 'copy  model.py ' + model_out_path
         os.system(command)
         aux_out_path = args.log_directory + '/' + args.model_name + '/.'
-        command = 'cp train.py ' + aux_out_path
+        command = 'copy  train.py ' + aux_out_path
         os.system(command)
-        command = 'cp data.py ' + aux_out_path
+        command = 'copy  data.py ' + aux_out_path
         os.system(command)
     else:
         loaded_model_dir = os.path.dirname(args.checkpoint_path)
@@ -557,7 +513,7 @@ def main():
         loaded_model_filename = loaded_model_name + '.py'
 
         model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-        command = 'cp ' + loaded_model_dir + '/' + loaded_model_filename + ' ' + model_out_path
+        command = 'copy  ' + loaded_model_dir + '/' + loaded_model_filename + ' ' + model_out_path
         os.system(command)
 
     torch.cuda.empty_cache()

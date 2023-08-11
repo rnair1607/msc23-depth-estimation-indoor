@@ -35,6 +35,12 @@ class Encoder(nn.Module):
             self.feat_names = ['relu0', 'pool0', 'transition1', 'transition2', 'norm5']
             self.feat_out_channels = [96, 96, 192, 384, 2208]
 
+        elif params.encoder == 'mobilenetv2':
+            self.selected_model = models.mobilenet_v2(pretrained=True).features
+            self.feat_inds = [2, 4, 7, 11, 19]
+            self.feat_out_channels = [16, 24, 32, 64, 1280]
+            self.feat_names = []
+
         else:
             self.selected_model = models.densenet121(pretrained=True).features
             self.feat_names = ['relu0', 'pool0', 'transition1', 'transition2', 'norm5']
@@ -47,16 +53,15 @@ class Encoder(nn.Module):
         for k, v in self.selected_model._modules.items():
             if 'fc' in k or 'avgpool' in k:
                 continue
-            # print("Feature before:::",feature)
-            # feature = feature.cuda()
-            # print("Feature type:::",type(feature))
 
             feature = v(feature)
-            # print("Feature after:::",feature)
-            # print("Feature type:::",type(feature))
-            if any(x in k for x in self.feat_names):
+            if self.params.encoder == 'mobilenetv2':
+                if i == 2 or i == 4 or i == 7 or i == 11 or i == 19:
                     skip_feat.append(feature)
-            i += 1
+            else:
+                if any(x in k for x in self.feat_names):
+                    skip_feat.append(feature)
+            i = i + 1
         return skip_feat
     
 class Atrous_conv(nn.Sequential):
@@ -205,6 +210,7 @@ class Decoder(nn.Module):
                                               nn.Sigmoid())
 
     def forward(self, features, focal):
+        # print("features:::",features)
         skip0, skip1, skip2, skip3 = features[0], features[1], features[2], features[3]
         dense_features = torch.nn.ReLU()(features[4])
         Upconv5 = self.Upconv5(dense_features) # H/16
@@ -278,13 +284,19 @@ class AcaModel(nn.Module):
     def __init__(self, params):
         super(AcaModel, self).__init__()
         self.encoder = Encoder(params)
-        self.decoder = Decoder(params, self.encoder.feat_out_channels, params.bts_size)
-        for name, para in self.encoder.named_parameters():
-          if para.requires_grad and 'denselayer6' or 'denselayer5' or 'denselayer3' or 'denselayer2' or 'denselayer4' or 'denseblock3' or 'denseblock4' or 'denseblock2' in name:
-             para.requires_grad = False
+        self.decoder = Decoder(params, self.encoder.feat_out_channels, params.aca_size)
+        if params.encoder == 'mobilenetv2':
+            ct = 0
+            for child in self.encoder.children():
+                ct += 1
+                if ct < 3:
+                    for param in child.parameters():
+                        param.requires_grad = False
+        else:
+            for name, para in self.encoder.named_parameters():
+                if para.requires_grad and 'denselayer6' or 'denselayer5' or 'denselayer3' or 'denselayer2' or 'denselayer4' or 'denseblock3' or 'denseblock4' or 'denseblock2' in name:
+                    para.requires_grad = False
 
     def forward(self, x, focal):
-        # print("From Model file:::")
-        # print("X is ::",x)
-        # print("Focal is ::",focal)
-        return self.decoder(self.encoder(x), focal)
+        skip_feat = self.encoder(x)
+        return self.decoder(skip_feat, focal)

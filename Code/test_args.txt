@@ -1,0 +1,16 @@
+--encoder densenet121
+--data_path D:/mini_sync
+--dataset nyu
+--filenames_file ./test_with_gt.txt
+--filenames_file_eval ./test_with_gt.txt
+--model_name model-43500-cutDepth
+--checkpoint_path ./models/Acamodel/model-43500-cutDepth
+--input_height 480
+--input_width 640
+--max_depth 10
+--save_lpg
+--min_depth_eval 1e-3
+--max_depth_eval 10
+--gpu 0
+--data_path_eval D:/mini_sync
+--gt_path_eval D:/mini_sync

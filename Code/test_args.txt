@@ -3,8 +3,8 @@
 --dataset nyu
 --filenames_file ./test_with_gt.txt
 --filenames_file_eval ./test_with_gt.txt
---model_name model-43500-cutDepth
---checkpoint_path ./models/Acamodel/model-43500-cutDepth
+--model_name model-43500-no-aug
+--checkpoint_path ./models/Acamodel/model-43500-no-aug
 --input_height 480
 --input_width 640
 --max_depth 10

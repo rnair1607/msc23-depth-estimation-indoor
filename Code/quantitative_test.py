@@ -26,7 +26,7 @@ def convert_arg_line_to_args(arg_line):
         yield arg
 
 
-parser = argparse.ArgumentParser(description='BTS PyTorch implementation.', fromfile_prefix_chars='@')
+parser = argparse.ArgumentParser(description='Acamodel PyTorch implementation.', fromfile_prefix_chars='@')
 parser.convert_arg_line_to_args = convert_arg_line_to_args
 
 parser.add_argument('--encoder', type=str, help='type of encoder, vgg or desenet121_bts or densenet161_bts',

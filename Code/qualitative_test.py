@@ -42,7 +42,7 @@ def convert_arg_line_to_args(arg_line):
         yield arg
 
 
-parser = argparse.ArgumentParser(description='BTS PyTorch implementation.', fromfile_prefix_chars='@')
+parser = argparse.ArgumentParser(description='Acamodel PyTorch implementation.', fromfile_prefix_chars='@')
 parser.convert_arg_line_to_args = convert_arg_line_to_args
 
 parser.add_argument('--encoder', type=str, help='type of encoder, vgg or desenet121_bts or densenet161_bts',
@@ -52,12 +52,24 @@ parser.add_argument('--aca_size',                  type=int,   help='initial num
 parser.add_argument('--model_name', type=str, help='model name', default='model-43500-no-aug')
 parser.add_argument('--data_path', type=str, help='path to the data', required=True)
 parser.add_argument('--filenames_file', type=str, help='path to the filenames text file', required=True)
+parser.add_argument('--filenames_file_eval', type=str, help='path to the filenames text file', required=True)
 parser.add_argument('--input_height', type=int, help='input height', default=480)
 parser.add_argument('--input_width', type=int, help='input width', default=640)
 parser.add_argument('--max_depth', type=float, help='maximum depth in estimation', default=80)
 parser.add_argument('--checkpoint_path', type=str, help='path to a specific checkpoint to load', default='')
 parser.add_argument('--dataset', type=str, help='dataset to train on, make3d or nyudepthv2', default='nyu')
 parser.add_argument('--save_lpg', help='if set, save outputs from lpg layers', action='store_true')
+parser.add_argument('--min_depth_eval',            type=float, help='minimum depth for evaluation', default=1e-3)
+parser.add_argument('--max_depth_eval',            type=float, help='maximum depth for evaluation', default=80)
+parser.add_argument('--gpu',                       type=int,   help='GPU id to use.', default=None)
+parser.add_argument('--data_path_eval',            type=str,   help='path to the data for online evaluation', required=False)
+parser.add_argument('--gt_path_eval',              type=str,   help='path to the groundtruth data for online evaluation', required=False)
+parser.add_argument('--multiprocessing_distributed',           help='Use multi-processing distributed training to launch '
+                                                                    'N processes per node, which has N GPUs. This is the '
+                                                                    'fastest way to use PyTorch for either single node or '
+                                                                    'multi node data parallel training', action='store_true',)
+
+
 if sys.argv.__len__() == 2:
     arg_filename_with_prefix = '@' + sys.argv[1]
     args = parser.parse_args([arg_filename_with_prefix])
@@ -174,7 +186,7 @@ def test(params):
             cv2.imwrite(filename_image_png+'.png', image[10:-1 - 9, 10:-1 - 9, :])
 
             plt.imsave(filename_pred_png+'_cmp.png', pred_depth_scaled, cmap=plt.colormaps['plasma'])
-            plt.imsave(filename_gt_png+'.png', np.log10(gt[10:-1 - 9, 10:-1 - 9]), cmap='Greys')
+            plt.imsave(filename_gt_png+'.png', np.log10(gt[10:-1 - 9, 10:-1 - 9]), cmap=plt.colormaps['plasma'])
             pred_depth_cropped = pred_depth[10:-1 - 9, 10:-1 - 9]
             plt.imsave(filename_cmap_png+'.png', np.log10(pred_depth_cropped), cmap='plasma')
             pred_8x8_cropped = pred_8x8[10:-1 - 9, 10:-1 - 9]

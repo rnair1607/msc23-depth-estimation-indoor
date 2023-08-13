@@ -3,7 +3,11 @@
 /Exps
 /Docs
 *.zip
-/Code/models
+/Code/models/eval
+/Code/models/Acamodel/summaries
+/Code/models/Acamodel/cutDepth
+/Code/models/Acamodel/cutedge
+/Code/models/Acamodel/sota
 /Code/__pycache__
 /Code/result_model-43500-cutDepth
 /Code/result_model-43500-no-aug

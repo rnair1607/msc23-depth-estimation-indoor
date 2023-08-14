@@ -9,6 +9,6 @@
 /Code/models/Acamodel/cutedge
 /Code/models/Acamodel/sota
 /Code/__pycache__
-/Code/result_model-43500-cutDepth
-/Code/result_model-43500-no-aug
-/Code/result_model-44500-best_d2_0_cutEdge.91047
+/Code/result_model-cutDepth
+/Code/result_model-sota
+/Code/result_model-cutEdge

@@ -1,14 +1,7 @@
 # Monocular Depth Estimation - Indoor Dataset
 
-## ToDo List
+This repository contains the code for my dissertation topic Monocular depth estimation for Indoor scenes. A publicly available notebook is setup to run tests at this Google Colab [link](https://colab.research.google.com/drive/1A2wp3jn7pNgMAkGbJxU5s3cnIsp6oR3v?usp=sharing). The version of NYU dataset used is available at this google drive [link](https://drive.google.com/file/d/1YMcxAfxCRCRdV2i9VqcHHSemVyazuiFl/view?usp=sharing).
 
-- W23Y2023
-  - [ ] Analyze indoor dataset
-  - [ ] Review existing implementations and related work
-  - [x] Update the presentation as per the supervisor's feedback [[link](https://docs.google.com/presentation/d/1xNnUM5zDMCjyNNW81LcZDnn8laOtmcfX/edit?usp=drive_link&ouid=103879877178863765148&rtpof=true&sd=true)]
-- W22Y2023
-  - [x] Prepare presentation for Monocular Depth Estimation [[link](https://docs.google.com/presentation/d/1cqx2875E27dxJaAVvot-WlLmDeU4hqnF/edit?usp=drive_link&ouid=103879877178863765148&rtpof=true&sd=true)]
+## Abstract
 
----
-
-## Notes from supervisor
+The task of monocular depth estimation is to perceive the depth of objects in a given scene. For  humans, it is a very easy task, but it is quite the contrary if a machine has to do the same. Depth estimation in a scene has been a challenging problem in the field of computer vision. A deep learning approach to this task has shown great  success in the past with both supervised and self-supervised approaches. In this dissertation, we aim to propose a framework that is light weight, to estimate depth in a scene, specifically for indoor scenes.  For this, a light version of the publicly available indoor dataset NYU-V2 was used, to reduce the training time. Additionally, a pretrained encoder was used to leverage the potential of transfer to speed up the training. And lastly, we propose a new data augmentation policy in the image domain, CutEdge. CutEdge is highly motivated from CutDepth. CutEdge pastes edge information, obtained by using Sobel Edge Detector, and replace certain parts of the input image with this edge information. This helps the model learn edge detection faster, thereby giving sharper depth maps in the output. And finally, the results were compared with the existing state-of-the-art and discussed after 25 epochs of training. 
